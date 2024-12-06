@@ -1,86 +1,173 @@
 ---
-title: 'Quickstart'
-description: 'Start building awesome documentation in under 5 minutes'
+title: "Quickstart"
+description: "Get started with the Goodfire SDK"
 ---
 
-## Setup your development
+<Info>
+  **Prerequisite**: You'll need a Goodfire API key to follow this guide. Get one
+  through [our platform](https://platform.goodfire.ai) or contact
+  [support](mailto:contact@goodfire.ai).
+</Info>
 
-Learn how to update your docs locally and deploy them to the public.
+<a href="https://colab.research.google.com/drive/1xH4QVfPznqJ2pS90e4oEV1s8uzPPSRY9">
+  <img
+    src="https://colab.research.google.com/assets/colab-badge.svg"
+    alt="Open in Colab"
+    width="150px"
+    style={{ pointerEvents: "none" }}
+  />
+</a>
 
-### Edit and preview
+## Installation
+
+Install the Goodfire SDK using pip:
+
+```bash
+pip install goodfire
+```
+
+## Initialize the SDK
+
+Start by importing and initializing the Goodfire client:
+
+```python
+from sdk import goodfire
+
+client = goodfire.Client('YOUR_API_KEY')
+```
+
+## Creating Model Variants
+
+The Goodfire SDK allows you to create variants of language models with modified behaviors:
+
+```python
+# Initialize a model variant
+variant = goodfire.Variant("meta-llama/Meta-Llama-3-8B-Instruct")
+```
+
+## Searching for Features
+
+You can search for interpretable features within the model:
+
+<CodeGroup>
+```python Code
+# Search for features related to a concept
+features, relevance = client.features.search(
+    "pirate",
+    model=variant,
+    top_k=5
+)
+```
+
+```python Output
+# Search for features related to a concept
+features, relevance = client.features.search(
+    "pirate",
+    model=variant,
+    top_k=5
+)
+```
+
+</CodeGroup>
+
+## Steering Model Behavior
+
+Modify model behavior by setting feature values:
+
+```python
+# Set a feature value to modify model behavior
+variant.set(features[0], 0.9, mode="pin")
+
+# Generate text with the modified model
+response = client.chat.completions.create(
+    [
+        {"role": "user", "content": "Hello, how are you?"}
+    ],
+    model=variant,
+    stream=False,
+    max_completion_tokens=50
+)
+```
+
+## Saving and Loading Variants
+
+You can persist model variants for later use:
+
+```python
+# Save a variant
+variant_id = client.variants.create(variant, "My Custom Model")
+
+# Load a saved variant
+loaded_variant = client.variants.get(variant_id)
+```
+
+## Feature Inspection
+
+Inspect which features are activating in a conversation:
+
+```python
+context = client.features.inspect(
+    [
+        {"role": "user", "content": "Hello!"},
+        {"role": "assistant", "content": "Hi there!"}
+    ],
+    model=variant
+)
+
+# Get top activating features
+top_features = context.top(k=5)
+```
+
+## Using with OpenAI SDK
+
+The Goodfire API is compatible with the OpenAI SDK:
+
+```python
+from openai import OpenAI
+
+oai_client = OpenAI(
+    api_key="YOUR_GOODFIRE_API_KEY",
+    base_url="https://dev.api.goodfire.ai/api/inference/v1"
+)
+
+response = oai_client.chat.completions.create(
+    messages=[
+        {"role": "user", "content": "Hello!"}
+    ],
+    model=variant.base_model,
+    extra_body={"controller": variant.controller.json()}
+)
+```
+
+## Advanced Features
+
+The Goodfire SDK offers additional advanced features:
 
 <AccordionGroup>
-  <Accordion icon="github" title="Clone your docs locally">
-    During the onboarding process, we created a repository on your Github with
-    your docs content. You can find this repository on our
-    [dashboard](https://dashboard.mintlify.com). To clone the repository
-    locally, follow these
-    [instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
-    in your terminal.
+  <Accordion title="Contrastive Feature Search">
+    Find features by comparing different types of responses:
+    ```python
+    features, _ = client.features.contrast(
+        dataset_1=[examples_of_behavior_1],
+        dataset_2=[examples_of_behavior_2],
+        model=variant
+    )
+    ```
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Preview changes">
-    Previewing helps you make sure your changes look as intended. We built a
-    command line interface to render these changes locally. 1. Install the
-    [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the
-    documentation changes locally with this command: ``` npm i -g mintlify ```
-    2. Run the following command at the root of your documentation (where
-    `mint.json` is): ``` mintlify dev ```
+
+  <Accordion title="Feature Cloning">
+    Clone and modify existing variants:
+    ```python
+    def clone(variant):
+        new_variant = goodfire.Variant(variant.base_model)
+        for edit in variant.edits:
+            new_variant.set(edit[0], edit[1]['value'], mode=edit[1]['mode'])
+        return new_variant
+    ```
   </Accordion>
 </AccordionGroup>
 
-### Deploy your changes
-
-<AccordionGroup>
-
-<Accordion icon="message-bot" title="Install our Github app">
-  Our Github app automatically deploys your changes to your docs site, so you
-  don't need to manage deployments yourself. You can find the link to install on
-  your [dashboard](https://dashboard.mintlify.com). Once the bot has been
-  successfully installed, there should be a check mark next to the commit hash
-  of the repo.
-</Accordion>
-<Accordion icon="rocket" title="Push your changes">
-  [Commit and push your changes to
-  Git](https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository#about-git-push)
-  for your changes to update in your docs site. If you push and don't see that
-  the Github app successfully deployed your changes, you can also manually
-  update your docs through our [dashboard](https://dashboard.mintlify.com).
-</Accordion>
-
-</AccordionGroup>
-
-## Update your docs
-
-Add content directly in your files with MDX syntax and React components. You can use any of our components, or even build your own.
-
-<CardGroup>
-
-<Card title="Style Your Docs" icon="paintbrush" href="/settings/global">
-  Add flair to your docs with personalized branding.
-</Card>
-
-<Card
-  title="Add API Endpoints"
-  icon="square-code"
-  href="/api-playground/configuration"
->
-  Implement your OpenAPI spec and enable API user interaction.
-</Card>
-
-<Card
-  title="Integrate Analytics"
-  icon="chart-mixed"
-  href="/analytics/supported-integrations"
->
-  Draw insights from user interactions with your documentation.
-</Card>
-
-<Card
-  title="Host on a Custom Domain"
-  icon="browser"
-  href="/settings/custom-domain/subdomain"
->
-  Keep your docs on your own website's subdomain.
-</Card>
-
-</CardGroup>
+<Note>
+  For more advanced usage and detailed API reference, check out our [advanced
+  tutorial](/advanced) and [API documentation](/api-reference).
+</Note>

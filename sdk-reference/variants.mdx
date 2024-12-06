@@ -1,0 +1,182 @@
+---
+title: "Variants API Reference"
+description: "Documentation for the Goodfire Variants API"
+---
+
+The Variants API provides methods for working with model variants. Variants allow you to modify model behavior by adjusting feature activations.
+
+## Methods
+
+### get()
+
+Get a model variant by ID.
+
+**Parameters:**
+
+<ResponseField name="variant_id" type="str" required>
+  ID of the variant to retrieve
+</ResponseField>
+
+**Returns:** `Variant`
+
+**Example:**
+
+```python
+# Get a specific variant
+variant = await client.variants.get("variant_123")
+
+# Print variant details
+print(f"Base model: {variant.base_model}")
+```
+
+### list()
+
+List all available model variants.
+
+**Parameters:** None
+
+**Returns:** `list[VariantMetaData]`
+
+**Example:**
+
+```python
+# List all variants
+variants = await client.variants.list()
+
+# Print variant names and IDs
+for variant in variants:
+    print(f"{variant.name}: {variant.id}")
+```
+
+### create()
+
+Create a new model variant.
+
+**Parameters:**
+
+<ResponseField name="variant" type="Variant" required>
+  Variant object with desired modifications
+</ResponseField>
+
+<ResponseField name="name" type="str" required>
+  Name for the new variant
+</ResponseField>
+
+**Returns:** `str` - ID of the created variant
+
+**Example:**
+
+```python
+# Create a variant that modifies a feature
+variant = Variant("meta-llama/Meta-Llama-3-8B-Instruct")
+variant.set(feature, value=1.5, mode="multiply")
+
+# Create the variant
+variant_id = await client.variants.create(
+    variant=variant,
+    name="More formal variant"
+)
+```
+
+### update()
+
+Update an existing model variant.
+
+**Parameters:**
+
+<ResponseField name="id" type="str" required>
+  ID of the variant to update
+</ResponseField>
+
+<ResponseField name="variant" type="Variant" required>
+  Updated variant object
+</ResponseField>
+
+<ResponseField name="new_name" type="str">
+  Optional new name for the variant
+</ResponseField>
+
+**Returns:** None
+
+**Example:**
+
+```python
+# Update a variant's configuration
+variant = await client.variants.get("variant_123")
+variant.set(feature, value=2.0, mode="multiply")
+
+await client.variants.update(
+    id="variant_123",
+    variant=variant,
+    new_name="Even more formal variant"
+)
+```
+
+### delete()
+
+Delete a model variant.
+
+**Parameters:**
+
+<ResponseField name="id" type="str" required>
+  ID of the variant to delete
+</ResponseField>
+
+**Returns:** None
+
+**Example:**
+
+```python
+# Delete a variant
+await client.variants.delete("variant_123")
+```
+
+## Objects
+
+### VariantMetaData
+
+Metadata about a model variant.
+
+**Properties:**
+
+<ResponseField name="name" type="str">
+  Name of the variant
+</ResponseField>
+
+<ResponseField name="base_model" type="str">
+  Base model identifier
+</ResponseField>
+
+<ResponseField name="id" type="str">
+  Unique identifier for the variant
+</ResponseField>
+
+### Variant
+
+Represents a model variant with modified feature behaviors.
+
+**Methods:**
+
+<ResponseField name="set" type="method">
+  Set a feature modification.
+
+```python
+variant.set(
+    feature,      # Feature to modify
+    value=1.5,    # Modification value
+    mode="multiply"  # Modification mode
+)
+```
+
+</ResponseField>
+
+**Example:**
+
+```python
+# Create a variant
+variant = Variant("meta-llama/Meta-Llama-3-8B-Instruct")
+
+# Modify multiple features
+variant.set(formal_feature, value=1.5, mode="multiply")
+variant.set(casual_feature, value=0.5, mode="multiply")
+```

@@ -1,0 +1,192 @@
+---
+title: "Chat API Reference"
+description: "Documentation for the Goodfire Chat API"
+---
+
+The Chat API provides methods for interacting with Goodfire's language models in a chat format. It supports both streaming and non-streaming completions, as well as logits computation.
+
+## Methods
+
+### create()
+
+Create a chat completion with the model.
+
+**Parameters:**
+
+<ResponseField name="messages" type="list[ChatMessage]" required>
+  List of messages in the conversation. Each message should have `role` ("user",
+  "assistant", or "system") and `content` fields.
+</ResponseField>
+
+<ResponseField name="model" type="Union[str, VariantInterface]" required>
+  Model identifier or variant to use for completion
+</ResponseField>
+
+<ResponseField name="stream" type="bool" default="False">
+  Whether to stream the response tokens
+</ResponseField>
+
+<ResponseField name="max_completion_tokens" type="Optional[int]" default="2048">
+  Maximum number of tokens to generate
+</ResponseField>
+
+<ResponseField name="top_p" type="float" default="0.9">
+  Nucleus sampling parameter
+</ResponseField>
+
+<ResponseField name="temperature" type="float" default="0.6">
+  Sampling temperature
+</ResponseField>
+
+<ResponseField name="stop" type="Optional[Union[str, list[str]]]">
+  Sequences where the API will stop generating further tokens
+</ResponseField>
+
+<ResponseField name="seed" type="Optional[int]" default="42">
+  Random seed for reproducible outputs
+</ResponseField>
+
+<ResponseField name="system_prompt" type="str">
+  System prompt to prepend to the conversation
+</ResponseField>
+
+**Returns:**
+
+- If `stream=False`: `ChatCompletion` object
+- If `stream=True`: Iterator of `StreamingChatCompletionChunk` objects
+
+**Examples:**
+
+Non-streaming completion:
+
+```python
+response = await client.chat.completions.create(
+    messages=[
+        {"role": "user", "content": "What is the capital of France?"}
+    ],
+    model="meta-llama/Meta-Llama-3-8B-Instruct"
+)
+print(response.choices[0].message.content)
+```
+
+Streaming completion:
+
+```python
+async for chunk in client.chat.completions.create(
+    messages=[
+        {"role": "user", "content": "Write a short poem"}
+    ],
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    stream=True
+):
+    print(chunk.choices[0].delta.content, end="")
+```
+
+### logits()
+
+Compute token probabilities for the next token in a conversation.
+
+**Parameters:**
+
+<ResponseField name="messages" type="list[ChatMessage]" required>
+  List of messages in the conversation
+</ResponseField>
+
+<ResponseField name="model" type="Union[str, VariantInterface]" required>
+  Model identifier or variant to use
+</ResponseField>
+
+<ResponseField name="top_k" type="Optional[int]">
+  Limit response to top K most likely tokens
+</ResponseField>
+
+<ResponseField name="vocabulary" type="Optional[list[str]]">
+  List of tokens to compute probabilities for
+</ResponseField>
+
+**Returns:** `LogitsResponse` containing token probabilities
+
+**Example:**
+
+```python
+logits = await client.chat.logits(
+    messages=[
+        {"role": "user", "content": "The capital of France is"}
+    ],
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    vocabulary=["Paris", "London", "Berlin"]
+)
+print(logits.logits)  # {"Paris": 0.92, "London": 0.05, "Berlin": 0.03}
+```
+
+## Response Objects
+
+### ChatCompletion
+
+Response from a non-streaming chat completion.
+
+**Properties:**
+
+<ResponseField name="id" type="str">
+  Unique identifier for the completion
+</ResponseField>
+
+<ResponseField name="object" type="str">
+  Object type identifier
+</ResponseField>
+
+<ResponseField name="created" type="Optional[int]">
+  Unix timestamp of when the completion was created
+</ResponseField>
+
+<ResponseField name="model" type="str">
+  ID of the model used
+</ResponseField>
+
+<ResponseField name="system_fingerprint" type="str">
+  System fingerprint for the completion
+</ResponseField>
+
+<ResponseField name="choices" type="list[ChatCompletionChoice]">
+  List of completion choices
+</ResponseField>
+
+### StreamingChatCompletionChunk
+
+Individual chunk from a streaming chat completion.
+
+**Properties:**
+
+<ResponseField name="id" type="str">
+  Unique identifier for the completion
+</ResponseField>
+
+<ResponseField name="object" type="str">
+  Object type identifier
+</ResponseField>
+
+<ResponseField name="created" type="Optional[int]">
+  Unix timestamp of when the chunk was created
+</ResponseField>
+
+<ResponseField name="model" type="str">
+  ID of the model used
+</ResponseField>
+
+<ResponseField name="system_fingerprint" type="str">
+  System fingerprint for the completion
+</ResponseField>
+
+<ResponseField name="choices" type="list[StreamingChoice]">
+  List of completion choices in this chunk
+</ResponseField>
+
+### LogitsResponse
+
+Response from a logits computation request.
+
+**Properties:**
+
+<ResponseField name="logits" type="dict[str, float]">
+  Dictionary mapping tokens to their probabilities
+</ResponseField>

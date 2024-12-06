@@ -1,0 +1,31 @@
+---
+title: "Client Reference"
+description: ""
+icon: "book"
+---
+
+## Client
+
+The Goodfire SDK provides both synchronous and asynchronous clients for interacting with the Goodfire API. The main client classes are organized into three main interfaces:
+
+- [Features API](/sdk-reference/features) - For working with interpretable features
+- [Chat API](/sdk-reference/chat) - For interacting with language models
+- [Variants API](/sdk-reference/variants) - For managing model variants
+
+### Initialization
+
+<CodeGroup>
+```python Async
+from goodfire import AsyncClient
+
+client = AsyncClient("your-api-key")
+
+````
+
+```python Sync
+from goodfire import Client
+
+client = Client("your-api-key")
+````
+
+</CodeGroup>

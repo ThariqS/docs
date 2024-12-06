@@ -1,15 +1,15 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "Starter Kit",
+  "name": "Goodfire SDK",
   "logo": {
-    "dark": "/logo/dark.svg",
-    "light": "/logo/light.svg"
+    "dark": "/logo/goodfire-logo.svg",
+    "light": "/logo/goodfire-logo.svg"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/goodfire-mark.svg",
   "colors": {
-    "primary": "#0D9373",
-    "light": "#07C983",
-    "dark": "#0D9373",
+    "primary": "#bd4b00",
+    "light": "#ffcb80",
+    "dark": "#451e11",
     "anchors": {
       "from": "#0D9373",
       "to": "#07C983"
@@ -18,68 +18,39 @@
   "topbarLinks": [
     {
       "name": "Support",
-      "url": "mailto:hi@mintlify.com"
+      "url": "mailto:support@goodfire.ai"
     }
   ],
   "topbarCtaButton": {
     "name": "Dashboard",
-    "url": "https://dashboard.mintlify.com"
+    "url": "https://platform.goodfire.ai/"
   },
   "tabs": [
     {
-      "name": "API Reference",
-      "url": "api-reference"
-    }
-  ],
-  "anchors": [
-    {
-      "name": "Documentation",
-      "icon": "book-open-cover",
-      "url": "https://mintlify.com/docs"
-    },
-    {
-      "name": "Community",
-      "icon": "slack",
-      "url": "https://mintlify.com/community"
-    },
-    {
-      "name": "Blog",
-      "icon": "newspaper",
-      "url": "https://mintlify.com/blog"
+      "name": "SDK Reference",
+      "url": "sdk-reference"
     }
   ],
   "navigation": [
     {
       "group": "Get Started",
+      "pages": ["introduction", "quickstart"]
+    },
+    {
+      "group": "Classes",
       "pages": [
-        "introduction",
-        "quickstart",
-        "development"
+        "sdk-reference/example",
+        "sdk-reference/chat",
+        "sdk-reference/features",
+        "sdk-reference/variants"
       ]
     },
     {
-      "group": "Essentials",
+      "group": "Notebooks",
       "pages": [
-        "essentials/markdown",
-        "essentials/code",
-        "essentials/images",
-        "essentials/settings",
-        "essentials/navigation",
-        "essentials/reusable-snippets"
-      ]
-    },
-    {
-      "group": "API Documentation",
-      "pages": [
-        "api-reference/introduction"
-      ]
-    },
-    {
-      "group": "Endpoint Examples",
-      "pages": [
-        "api-reference/endpoint/get",
-        "api-reference/endpoint/create",
-        "api-reference/endpoint/delete"
+        "notebooks/decision-trees",
+        "notebooks/latent-explorer",
+        "notebooks/advanced"
       ]
     }
   ],

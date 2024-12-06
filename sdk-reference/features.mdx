@@ -1,0 +1,344 @@
+---
+title: "Features API Reference"
+description: "Documentation for the Goodfire Features API"
+---
+
+The Features API provides methods for working with interpretable features of language models. Features represent learned patterns in model behavior that can be analyzed and modified.
+
+## Methods
+
+### neighbors()
+
+Get the nearest neighbors of a feature or group of features.
+
+**Parameters:**
+
+<ResponseField name="features" type="Feature | FeatureGroup" required>
+  Feature or group of features to find neighbors for
+</ResponseField>
+
+<ResponseField name="model" type="str | VariantInterface" required>
+  Model identifier or variant interface
+</ResponseField>
+
+<ResponseField name="top_k" type="int" default={10}>
+  Number of neighbors to return
+</ResponseField>
+
+**Returns:** `FeatureGroup`
+
+**Example:**
+
+```python
+# Get neighbors of a feature
+neighbors = await client.features.neighbors(
+    feature,
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    top_k=10
+)
+
+# Print neighbor labels
+for neighbor in neighbors:
+    print(neighbor.label)
+```
+
+### search()
+
+Search for features based on a text query.
+
+**Parameters:**
+
+<ResponseField name="query" type="str" required>
+  Text query to search for features
+</ResponseField>
+
+<ResponseField name="model" type="str | VariantInterface" required>
+  Model identifier or variant interface
+</ResponseField>
+
+<ResponseField name="top_k" type="int" default={10}>
+  Number of results to return
+</ResponseField>
+
+**Returns:** `tuple[FeatureGroup, list[float]]` - Features and their relevance scores
+
+**Example:**
+
+```python
+# Search for features related to writing style
+features, scores = await client.features.search(
+    "formal writing style",
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    top_k=10
+)
+
+# Print features and their relevance scores
+for feature, score in zip(features, scores):
+    print(f"{feature.label}: {score}")
+```
+
+### inspect()
+
+Analyze feature activations in text.
+
+**Parameters:**
+
+<ResponseField name="messages" type="list[ChatMessage]" required>
+  Messages to analyze
+</ResponseField>
+
+<ResponseField name="model" type="str | VariantInterface" required>
+  Model identifier or variant interface
+</ResponseField>
+
+<ResponseField name="features" type="Feature | FeatureGroup | None">
+  Optional specific features to analyze
+</ResponseField>
+
+<ResponseField name="aggregate_by" type="str" default="frequency">
+  How to aggregate activations: - "frequency": Count of activations above
+  threshold - "mean": Average activation strength - "max": Maximum activation
+  strength - "sum": Sum of activation strengths
+</ResponseField>
+
+**Returns:** `ContextInspector`
+
+**Example:**
+
+```python
+# Analyze feature activations in text
+inspector = await client.features.inspect(
+    messages=[{"role": "user", "content": "Hello world"}],
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    aggregate_by="frequency"
+)
+
+# Get top activated features
+for activation in inspector.top(k=5):
+    print(f"{activation.feature.label}: {activation.activation}")
+```
+
+### contrast()
+
+Compare feature activations between two sets of conversations.
+
+**Parameters:**
+
+<ResponseField name="dataset_1" type="list[list[ChatMessage]]" required>
+  First dataset of conversations
+</ResponseField>
+
+<ResponseField name="dataset_2" type="list[list[ChatMessage]]" required>
+  Second dataset of conversations
+</ResponseField>
+
+<ResponseField name="model" type="str | VariantInterface" required>
+  Model identifier or variant interface
+</ResponseField>
+
+<ResponseField name="top_k" type="int" default={5}>
+  Number of top features to return for each dataset
+</ResponseField>
+
+**Returns:** `tuple[FeatureGroup, FeatureGroup]` - Features characteristic of each dataset
+
+**Example:**
+
+```python
+# Compare formal vs informal conversations
+formal = [[{"role": "user", "content": "Dear Sir, I hope this finds you well..."}]]
+informal = [[{"role": "user", "content": "Hey! What's up?"}]]
+
+formal_features, informal_features = await client.features.contrast(
+    dataset_1=formal,
+    dataset_2=informal,
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    top_k=5
+)
+
+# Print features characteristic of formal writing
+print("Formal features:")
+for feature in formal_features:
+    print(feature.label)
+```
+
+### dimension_reduction()
+
+Reduce the dimensionality of a set of features around a center feature.
+
+**Parameters:**
+
+<ResponseField name="center" type="Feature" required>
+  Center feature for dimension reduction
+</ResponseField>
+
+<ResponseField name="features" type="FeatureGroup" required>
+  Features to reduce dimensions for
+</ResponseField>
+
+<ResponseField name="model" type="str | VariantInterface" required>
+  Model identifier or variant interface
+</ResponseField>
+
+<ResponseField name="dimensions" type="int" default={2}>
+  Number of dimensions to reduce to
+</ResponseField>
+
+**Returns:** `list[list[float]]` - Reduced feature coordinates
+
+**Example:**
+
+```python
+# Reduce dimensions of features around a center feature
+coordinates = await client.features.dimension_reduction(
+    center=feature,
+    features=feature_group,
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    dimensions=2
+)
+```
+
+### rerank()
+
+Rerank a set of features based on a query.
+
+**Parameters:**
+
+<ResponseField name="features" type="FeatureGroup" required>
+  Features to rerank
+</ResponseField>
+
+<ResponseField name="query" type="str" required>
+  Query to rerank features by
+</ResponseField>
+
+<ResponseField name="model" type="str | VariantInterface" required>
+  Model identifier or variant interface
+</ResponseField>
+
+<ResponseField name="top_k" type="int" default={10}>
+  Number of top features to return
+</ResponseField>
+
+**Returns:** `FeatureGroup`
+
+**Example:**
+
+```python
+# Rerank features based on relevance to "writing style"
+reranked = await client.features.rerank(
+    features=feature_group,
+    query="writing style",
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    top_k=10
+)
+```
+
+### activations()
+
+Get raw feature activation matrix for a conversation.
+
+**Parameters:**
+
+<ResponseField name="messages" type="list[ChatMessage]" required>
+  Messages to analyze
+</ResponseField>
+
+<ResponseField name="model" type="str | VariantInterface" required>
+  Model identifier or variant interface
+</ResponseField>
+
+<ResponseField name="features" type="Feature | FeatureGroup | None">
+  Optional specific features to analyze
+</ResponseField>
+
+**Returns:** `NDArray[np.float64]` - Feature activation matrix
+
+**Example:**
+
+```python
+# Get activation matrix for a conversation
+matrix = await client.features.activations(
+    messages=[{"role": "user", "content": "Hello world"}],
+    model="meta-llama/Meta-Llama-3-8B-Instruct"
+)
+```
+
+## Feature Objects
+
+### Feature
+
+Represents a single interpretable feature.
+
+**Properties:**
+
+<ResponseField name="uuid" type="str">
+  Unique identifier for the feature
+</ResponseField>
+
+<ResponseField name="label" type="str">
+  Human-readable description of the feature
+</ResponseField>
+
+<ResponseField name="max_activation_strength" type="float">
+  Maximum activation strength observed
+</ResponseField>
+
+<ResponseField name="index_in_sae" type="int">
+  Index in the sparse autoencoder
+</ResponseField>
+
+### FeatureGroup
+
+A collection of features.
+
+**Example:**
+
+```python
+# Create a feature group
+features = FeatureGroup([feature1, feature2, feature3])
+
+# Iterate through features
+for feature in features:
+    print(feature.label)
+```
+
+### FeatureActivation
+
+Represents the activation of a feature.
+
+**Properties:**
+
+<ResponseField name="feature" type="Feature">
+  The activated feature
+</ResponseField>
+
+<ResponseField name="activation" type="float">
+  Activation strength
+</ResponseField>
+
+### ContextInspector
+
+Analyzes feature activations in text.
+
+**Methods:**
+
+<ResponseField name="top" type="method">
+  Get top activated features.
+
+```python
+# Get top 5 activated features
+top_features = inspector.top(k=5)
+```
+
+</ResponseField>
+
+<ResponseField name="matrix" type="method">
+  Get the full activation matrix.
+
+```python
+# Get activation matrix and feature lookup
+matrix, feature_lookup = inspector.matrix(return_lookup=True)
+```
+
+</ResponseField>
