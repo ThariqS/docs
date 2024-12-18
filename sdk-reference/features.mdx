@@ -5,6 +5,95 @@ description: "Documentation for the Goodfire Features API"
 
 The Features API provides methods for working with interpretable features of language models. Features represent learned patterns in model behavior that can be analyzed and modified.
 
+## Core Classes
+
+### Feature
+
+A class representing a human-interpretable "feature" - a model's conceptual neural unit. Features can be combined into groups and compared using standard operators.
+
+**Properties:**
+
+<ResponseField name="uuid" type="UUID">
+  Unique identifier for the feature
+</ResponseField>
+
+<ResponseField name="label" type="str">
+  Human-readable label describing the feature
+</ResponseField>
+
+<ResponseField name="max_activation_strength" type="float">
+  Maximum activation strength of the feature in the training dataset
+</ResponseField>
+
+<ResponseField name="index_in_sae" type="int">
+  Feature index relative to all features in a given model
+</ResponseField>
+
+**Methods:**
+
+- `json()`: Convert feature to JSON format
+- `from_json(data)`: Create feature from JSON data
+- Supports comparison operators (`==`, `!=`, `<=`, `<`, `>=`, `>`)
+
+### FeatureGroup
+
+A collection of Feature instances with group operations. Provides functionality for managing and operating on groups of features, including union and intersection operations, indexing, and comparison operations.
+
+**Methods:**
+
+<ResponseField name="add(feature)" type="method">
+  Add a feature to the group
+</ResponseField>
+
+<ResponseField name="pop(index)" type="method">
+  Remove and return feature at specified index
+</ResponseField>
+
+<ResponseField name="union(feature_group)" type="method">
+  Combine this group with another feature group
+</ResponseField>
+
+<ResponseField name="intersection(feature_group)" type="method">
+  Create new group with features common to both groups
+</ResponseField>
+
+**Example:**
+
+```python
+feature_group = FeatureGroup([feature1, feature2, feature3, feature4])
+
+# Access single feature by index
+first_feature = feature_group[0]  # Returns Feature
+
+# Slice features
+first_two = feature_group[0:2]    # Returns FeatureGroup with features 0,1
+last_two = feature_group[-2:]     # Returns FeatureGroup with last 2 features
+
+# Multiple indexes using list or tuple
+selected = feature_group[[0, 2]]  # Returns FeatureGroup with features 0,2
+selected = feature_group[0, 3]    # Returns FeatureGroup with features 0,3
+```
+
+### ConditionalGroup
+
+Groups multiple conditions with logical operators.
+
+**Properties:**
+
+<ResponseField name="conditionals" type="list[Conditional]">
+  List of Conditional instances to group
+</ResponseField>
+
+<ResponseField name="operator" type="str">
+  Logical operator to join conditions ("AND" or "OR")
+</ResponseField>
+
+**Methods:**
+
+- Supports logical operations (`&` for AND, `|` for OR)
+- `json()`: Convert to JSON format
+- `from_json()`: Create from JSON data
+
 ## Methods
 
 ### neighbors()
@@ -44,12 +133,12 @@ for neighbor in neighbors:
 
 ### search()
 
-Search for features based on a text query.
+Search for features based on semantic similarity of feature labels to a query string.
 
 **Parameters:**
 
 <ResponseField name="query" type="str" required>
-  Text query to search for features
+  Search string to compare against feature label embeddings
 </ResponseField>
 
 <ResponseField name="model" type="str | VariantInterface" required>
@@ -57,7 +146,7 @@ Search for features based on a text query.
 </ResponseField>
 
 <ResponseField name="top_k" type="int" default={10}>
-  Number of results to return
+  Number of top features to return after searching
 </ResponseField>
 
 **Returns:** `tuple[FeatureGroup, list[float]]` - Features and their relevance scores
@@ -77,9 +166,87 @@ for feature, score in zip(features, scores):
     print(f"{feature.label}: {score}")
 ```
 
+### attribute()
+
+Analyze feature attributions for a set of messages.
+
+**Parameters:**
+
+<ResponseField name="messages" type="list[ChatMessage]" required>
+  Messages to analyze
+</ResponseField>
+
+<ResponseField name="model" type="str | VariantInterface" required>
+  Model identifier or variant interface
+</ResponseField>
+
+**Returns:** `FeatureGroup`
+
+**Example:**
+
+```python
+# Get feature attributions
+features = await client.features.attribute(
+    messages=[{"role": "user", "content": "Hello world"}],
+    model="meta-llama/Meta-Llama-3-8B-Instruct"
+)
+```
+
+### steer_to_token()
+
+Get features that steer towards or away from a specific token.
+
+**Parameters:**
+
+<ResponseField name="messages" type="list[ChatMessage]" required>
+  Messages to analyze
+</ResponseField>
+
+<ResponseField name="model" type="str | VariantInterface" required>
+  Model identifier or variant interface
+</ResponseField>
+
+<ResponseField name="steer_to" type="str" required>
+  Token to steer towards
+</ResponseField>
+
+**Returns:** `tuple[FeatureGroup, FeatureGroup]` - Features to add and features to remove
+
+**Example:**
+
+```python
+# Get features for steering to a token
+features_to_add, features_to_remove = await client.features.steer_to_token(
+    messages=[{"role": "user", "content": "Hello"}],
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    steer_to="world"
+)
+```
+
+### generate_contrastive_stimulus()
+
+Generate contrastive examples based on a specification.
+
+**Parameters:**
+
+<ResponseField name="specification" type="str" required>
+  Specification for generating contrastive examples
+</ResponseField>
+
+**Returns:** `tuple[Any, Any]` - Two contrastive examples
+
+**Example:**
+
+```python
+# Generate contrastive examples
+example1, example2 = await client.features.generate_contrastive_stimulus(
+    "Generate formal vs informal writing examples"
+)
+```
+
 ### inspect()
 
-Analyze feature activations in text.
+Analyzes how features are activated across the input messages.
 
 **Parameters:**
 
@@ -92,16 +259,17 @@ Analyze feature activations in text.
 </ResponseField>
 
 <ResponseField name="features" type="Feature | FeatureGroup | None">
-  Optional specific features to analyze
+  Optional specific features to analyze. If None, inspects all features.
 </ResponseField>
 
 <ResponseField name="aggregate_by" type="str" default="frequency">
-  How to aggregate activations: - "frequency": Count of activations above
-  threshold - "mean": Average activation strength - "max": Maximum activation
-  strength - "sum": Sum of activation strengths
+  Method to aggregate feature activations across tokens: - "frequency": Count of
+  tokens where feature is active - "mean": Mean activation value across tokens -
+  "max": Maximum activation value across tokens - "sum": Sum of activation
+  values across tokens
 </ResponseField>
 
-**Returns:** `ContextInspector`
+**Returns:** `ContextInspector` - An inspector object that provides methods for analyzing and visualizing how features are activated in the given context.
 
 **Example:**
 
@@ -120,7 +288,7 @@ for activation in inspector.top(k=5):
 
 ### contrast()
 
-Compare feature activations between two sets of conversations.
+Identify features that differentiate between two conversation datasets.
 
 **Parameters:**
 
@@ -140,26 +308,30 @@ Compare feature activations between two sets of conversations.
   Number of top features to return for each dataset
 </ResponseField>
 
-**Returns:** `tuple[FeatureGroup, FeatureGroup]` - Features characteristic of each dataset
+**Returns:** `tuple[FeatureGroup, FeatureGroup]` - Two FeatureGroups containing:
+
+- Features steering towards dataset_1
+- Features steering towards dataset_2
 
 **Example:**
 
 ```python
 # Compare formal vs informal conversations
-formal = [[{"role": "user", "content": "Dear Sir, I hope this finds you well..."}]]
-informal = [[{"role": "user", "content": "Hey! What's up?"}]]
+dataset_1 = [[
+    {"role": "user", "content": "Hi how are you?"},
+    {"role": "assistant", "content": "I'm doing well..."}
+]]
+dataset_2 = [[
+    {"role": "user", "content": "Hi how are you?"},
+    {"role": "assistant", "content": "Arr my spirits be high..."}
+]]
 
 formal_features, informal_features = await client.features.contrast(
-    dataset_1=formal,
-    dataset_2=informal,
+    dataset_1=dataset_1,
+    dataset_2=dataset_2,
     model="meta-llama/Meta-Llama-3-8B-Instruct",
     top_k=5
 )
-
-# Print features characteristic of formal writing
-print("Formal features:")
-for feature in formal_features:
-    print(feature.label)
 ```
 
 ### dimension_reduction()
@@ -236,7 +408,7 @@ reranked = await client.features.rerank(
 
 ### activations()
 
-Get raw feature activation matrix for a conversation.
+Retrieves feature activation values for each token in the input messages.
 
 **Parameters:**
 
@@ -249,10 +421,10 @@ Get raw feature activation matrix for a conversation.
 </ResponseField>
 
 <ResponseField name="features" type="Feature | FeatureGroup | None">
-  Optional specific features to analyze
+  Optional specific features to analyze. If None, analyzes all features.
 </ResponseField>
 
-**Returns:** `NDArray[np.float64]` - Feature activation matrix
+**Returns:** `NDArray[np.float64]` - Sparse activation matrix of shape [n_tokens, n_features] where each element represents the activation strength of a feature at a specific token. Most values are zero due to sparsity.
 
 **Example:**
 
@@ -263,6 +435,34 @@ matrix = await client.features.activations(
     model="meta-llama/Meta-Llama-3-8B-Instruct"
 )
 ```
+
+### lookup()
+
+Retrieves details for a list of features by their indices.
+
+**Parameters:**
+
+<ResponseField name="indices" type="list[int]" required>
+  List of feature indices to fetch
+</ResponseField>
+
+<ResponseField name="model" type="str | VariantInterface" required>
+  Model identifier or variant interface
+</ResponseField>
+
+**Returns:** `dict[int, Feature]` - Mapping of feature index to Feature object
+
+### list()
+
+Retrieves details for a list of features by their UUIDs.
+
+**Parameters:**
+
+<ResponseField name="ids" type="list[str]" required>
+  List of feature UUIDs to fetch
+</ResponseField>
+
+**Returns:** `FeatureGroup` - Collection of Feature objects
 
 ## Feature Objects
 

@@ -42,7 +42,8 @@
         "sdk-reference/example",
         "sdk-reference/chat",
         "sdk-reference/features",
-        "sdk-reference/variants"
+        "sdk-reference/variants",
+        "sdk-reference/conditionals"
       ]
     },
     {
