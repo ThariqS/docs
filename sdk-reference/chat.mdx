@@ -1,9 +1,85 @@
 ---
-title: "Chat API Reference"
+title: "Chat Completions"
 description: "Documentation for the Goodfire Chat API"
 ---
 
-The Chat API provides methods for interacting with Goodfire's language models in a chat format. It supports both streaming and non-streaming completions, as well as logits computation.
+The Chat API provides methods for interacting with Goodfire's language models in a chat format.
+The base chat interface is OpenAI-compatible. It supports both streaming and non-streaming completions, as well as logits computation.
+
+Once you have a [model variant](/sdk-reference/variants), you can use it to create chat completions.
+
+## Examples
+
+### Basic Chat Completion
+
+```python
+# Initialize the client
+client = goodfire.Client(
+    'your-api-key',
+    base_url="https://api.goodfire.ai"
+)
+
+# Create a non-streaming completion
+response = await client.chat.completions.create(
+    messages=[
+        {"role": "user", "content": "What is the capital of France?"}
+    ],
+    model="meta-llama/Meta-Llama-3-8B-Instruct"
+)
+print(response.choices[0].message.content)
+```
+
+### Streaming Chat Completion
+
+```python
+# Stream the response tokens
+async for chunk in client.chat.completions.create(
+    messages=[
+        {"role": "user", "content": "Write a short poem"}
+    ],
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    stream=True
+):
+    print(chunk.choices[0].delta.content, end="")
+```
+
+### Using with Model Variants
+
+```python
+# Create a variant with feature modifications
+variant = goodfire.Variant("meta-llama/Meta-Llama-3-8B-Instruct")
+pirate_features = client.features.search(
+    "talk like a pirate",
+    model=variant,
+    top_k=1
+)
+variant.set(pirate_features[0], 0.5)
+
+# Use the variant in chat completion
+for token in client.chat.completions.create(
+    messages=[
+        {"role": "user", "content": "Tell me about the ocean."}
+    ],
+    model=variant,
+    stream=True,
+    max_completion_tokens=50,
+):
+    print(token.choices[0].delta.content, end="")
+```
+
+### Computing Token Probabilities
+
+```python
+# Get probabilities for specific tokens
+logits = await client.chat.logits(
+    messages=[
+        {"role": "user", "content": "The capital of France is"}
+    ],
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    vocabulary=["Paris", "London", "Berlin"]
+)
+print(logits.logits)  # {"Paris": 0.92, "London": 0.05, "Berlin": 0.03}
+```
 
 ## Methods
 

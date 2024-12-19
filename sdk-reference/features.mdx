@@ -1,98 +1,47 @@
 ---
-title: "Features API Reference"
+title: "Features"
 description: "Documentation for the Goodfire Features API"
 ---
 
-The Features API provides methods for working with interpretable features of language models. Features represent learned patterns in model behavior that can be analyzed and modified.
+## Accessing Features
 
-## Core Classes
-
-### Feature
-
-A class representing a human-interpretable "feature" - a model's conceptual neural unit. Features can be combined into groups and compared using standard operators.
-
-**Properties:**
-
-<ResponseField name="uuid" type="UUID">
-  Unique identifier for the feature
-</ResponseField>
-
-<ResponseField name="label" type="str">
-  Human-readable label describing the feature
-</ResponseField>
-
-<ResponseField name="max_activation_strength" type="float">
-  Maximum activation strength of the feature in the training dataset
-</ResponseField>
-
-<ResponseField name="index_in_sae" type="int">
-  Feature index relative to all features in a given model
-</ResponseField>
-
-**Methods:**
-
-- `json()`: Convert feature to JSON format
-- `from_json(data)`: Create feature from JSON data
-- Supports comparison operators (`==`, `!=`, `<=`, `<`, `>=`, `>`)
-
-### FeatureGroup
-
-A collection of Feature instances with group operations. Provides functionality for managing and operating on groups of features, including union and intersection operations, indexing, and comparison operations.
-
-**Methods:**
-
-<ResponseField name="add(feature)" type="method">
-  Add a feature to the group
-</ResponseField>
-
-<ResponseField name="pop(index)" type="method">
-  Remove and return feature at specified index
-</ResponseField>
-
-<ResponseField name="union(feature_group)" type="method">
-  Combine this group with another feature group
-</ResponseField>
-
-<ResponseField name="intersection(feature_group)" type="method">
-  Create new group with features common to both groups
-</ResponseField>
-
-**Example:**
+Before using the Features API, you'll need a [model variant](/sdk-reference/variants):
 
 ```python
-feature_group = FeatureGroup([feature1, feature2, feature3, feature4])
-
-# Access single feature by index
-first_feature = feature_group[0]  # Returns Feature
-
-# Slice features
-first_two = feature_group[0:2]    # Returns FeatureGroup with features 0,1
-last_two = feature_group[-2:]     # Returns FeatureGroup with last 2 features
-
-# Multiple indexes using list or tuple
-selected = feature_group[[0, 2]]  # Returns FeatureGroup with features 0,2
-selected = feature_group[0, 3]    # Returns FeatureGroup with features 0,3
+variant = Variant("meta-llama/Meta-Llama-3-8B-Instruct")
 ```
 
-### ConditionalGroup
+You can then access features through the client's features interface. For example, to search for features:
 
-Groups multiple conditions with logical operators.
+```python
+# Search for features related to a concept
+features = client.features.search(
+    "angry",
+    model=variant,
+    top_k=5
+)
 
-**Properties:**
+# Print the found features
+print(features)
+```
 
-<ResponseField name="conditionals" type="list[Conditional]">
-  List of Conditional instances to group
-</ResponseField>
+Or inspect feature activations in text:
 
-<ResponseField name="operator" type="str">
-  Logical operator to join conditions ("AND" or "OR")
-</ResponseField>
+```python
+# Analyze how features activate in text
+inspector = client.features.inspect(
+    [
+        {"role": "user", "content": "Hello world"}
+    ],
+    model=variant
+)
 
-**Methods:**
+# Get top activated features
+for activation in inspector.top(k=5):
+    print(f"{activation.feature.label}: {activation.activation}")
+```
 
-- Supports logical operations (`&` for AND, `|` for OR)
-- `json()`: Convert to JSON format
-- `from_json()`: Create from JSON data
+The Features API provides methods for working with interpretable features of language models. Features represent learned patterns in model behavior that can be analyzed and modified.
 
 ## Methods
 
@@ -146,7 +95,8 @@ Search for features based on semantic similarity of feature labels to a query st
 </ResponseField>
 
 <ResponseField name="top_k" type="int" default={10}>
-  Number of top features to return after searching
+  Number of top features to return after searching (ranked by similarity
+  strength)
 </ResponseField>
 
 **Returns:** `tuple[FeatureGroup, list[float]]` - Features and their relevance scores
@@ -164,84 +114,6 @@ features, scores = await client.features.search(
 # Print features and their relevance scores
 for feature, score in zip(features, scores):
     print(f"{feature.label}: {score}")
-```
-
-### attribute()
-
-Analyze feature attributions for a set of messages.
-
-**Parameters:**
-
-<ResponseField name="messages" type="list[ChatMessage]" required>
-  Messages to analyze
-</ResponseField>
-
-<ResponseField name="model" type="str | VariantInterface" required>
-  Model identifier or variant interface
-</ResponseField>
-
-**Returns:** `FeatureGroup`
-
-**Example:**
-
-```python
-# Get feature attributions
-features = await client.features.attribute(
-    messages=[{"role": "user", "content": "Hello world"}],
-    model="meta-llama/Meta-Llama-3-8B-Instruct"
-)
-```
-
-### steer_to_token()
-
-Get features that steer towards or away from a specific token.
-
-**Parameters:**
-
-<ResponseField name="messages" type="list[ChatMessage]" required>
-  Messages to analyze
-</ResponseField>
-
-<ResponseField name="model" type="str | VariantInterface" required>
-  Model identifier or variant interface
-</ResponseField>
-
-<ResponseField name="steer_to" type="str" required>
-  Token to steer towards
-</ResponseField>
-
-**Returns:** `tuple[FeatureGroup, FeatureGroup]` - Features to add and features to remove
-
-**Example:**
-
-```python
-# Get features for steering to a token
-features_to_add, features_to_remove = await client.features.steer_to_token(
-    messages=[{"role": "user", "content": "Hello"}],
-    model="meta-llama/Meta-Llama-3-8B-Instruct",
-    steer_to="world"
-)
-```
-
-### generate_contrastive_stimulus()
-
-Generate contrastive examples based on a specification.
-
-**Parameters:**
-
-<ResponseField name="specification" type="str" required>
-  Specification for generating contrastive examples
-</ResponseField>
-
-**Returns:** `tuple[Any, Any]` - Two contrastive examples
-
-**Example:**
-
-```python
-# Generate contrastive examples
-example1, example2 = await client.features.generate_contrastive_stimulus(
-    "Generate formal vs informal writing examples"
-)
 ```
 
 ### inspect()
@@ -464,81 +336,104 @@ Retrieves details for a list of features by their UUIDs.
 
 **Returns:** `FeatureGroup` - Collection of Feature objects
 
-## Feature Objects
+## Classes
 
 ### Feature
 
-Represents a single interpretable feature.
+A class representing a human-interpretable "feature" - a model's conceptual neural unit. Features can be combined into groups and compared using standard operators.
 
-**Properties:**
-
-<ResponseField name="uuid" type="str">
+<Expandable title="Properties">
+<ParamField body="uuid" type="UUID">
   Unique identifier for the feature
-</ResponseField>
+</ParamField>
 
-<ResponseField name="label" type="str">
-  Human-readable description of the feature
-</ResponseField>
+<ParamField body="label" type="str">
+  Human-readable label describing the feature
+</ParamField>
 
-<ResponseField name="max_activation_strength" type="float">
-  Maximum activation strength observed
-</ResponseField>
+<ParamField body="max_activation_strength" type="float">
+  Maximum activation strength of the feature in the training dataset
+</ParamField>
 
-<ResponseField name="index_in_sae" type="int">
-  Index in the sparse autoencoder
-</ResponseField>
+<ParamField body="index_in_sae" type="int">
+  Feature index relative to all features in a given model
+</ParamField>
+
+<ParamField body="Methods">
+  - `json()`: Convert feature to JSON format
+  - `from_json(data)`: Create feature from JSON data
+  - Supports comparison operators (`==`, `!=`, `<=`, `<`, `>=`, `>`)
+</ParamField>
+</Expandable>
 
 ### FeatureGroup
 
-A collection of features.
+A collection of Feature instances with group operations.
 
-**Example:**
+<Expandable title="Properties">
+  <ParamField body="Methods">
+    - `add(feature)`: Add a feature to the group - `pop(index)`: Remove and
+    return feature at specified index - `union(feature_group)`: Combine this
+    group with another feature group - `intersection(feature_group)`: Create new
+    group with features common to both groups - Supports indexing and slicing
+    operations
+  </ParamField>
+</Expandable>
 
-```python
-# Create a feature group
-features = FeatureGroup([feature1, feature2, feature3])
+### ConditionalGroup
 
-# Iterate through features
-for feature in features:
-    print(feature.label)
-```
+Groups multiple conditions with logical operators.
+
+<Expandable title="Properties">
+<ParamField body="conditionals" type="list[Conditional]">
+  List of Conditional instances to group
+</ParamField>
+
+<ParamField body="operator" type="str">
+  Logical operator to join conditions ("AND" or "OR")
+</ParamField>
+
+<ParamField body="Methods">
+  - Supports logical operations (`&` for AND, `|` for OR)
+  - `json()`: Convert to JSON format
+  - `from_json()`: Create from JSON data
+</ParamField>
+</Expandable>
 
 ### FeatureActivation
 
 Represents the activation of a feature.
 
-**Properties:**
-
-<ResponseField name="feature" type="Feature">
+<Expandable title="Properties">
+<ParamField body="feature" type="Feature">
   The activated feature
-</ResponseField>
+</ParamField>
 
-<ResponseField name="activation" type="float">
+<ParamField body="activation" type="float">
   Activation strength
-</ResponseField>
+</ParamField>
+</Expandable>
 
 ### ContextInspector
 
 Analyzes feature activations in text.
 
-**Methods:**
+<Expandable title="Properties">
+<ParamField body="Methods">
+  - `top(k)`: Get top activated features
+  - `matrix(return_lookup)`: Get the full activation matrix
+</ParamField>
 
-<ResponseField name="top" type="method">
-  Get top activated features.
-
+<ParamField body="Example">
 ```python
 # Get top 5 activated features
 top_features = inspector.top(k=5)
-```
 
-</ResponseField>
-
-<ResponseField name="matrix" type="method">
-  Get the full activation matrix.
-
-```python
 # Get activation matrix and feature lookup
-matrix, feature_lookup = inspector.matrix(return_lookup=True)
-```
 
-</ResponseField>
+matrix, feature_lookup = inspector.matrix(return_lookup=True)
+
+```
+</ParamField>
+</Expandable>
+```

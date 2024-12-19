@@ -22,7 +22,7 @@
     }
   ],
   "topbarCtaButton": {
-    "name": "Dashboard",
+    "name": "Platform",
     "url": "https://platform.goodfire.ai/"
   },
   "tabs": [
@@ -41,9 +41,9 @@
       "pages": [
         "sdk-reference/example",
         "sdk-reference/chat",
-        "sdk-reference/features",
         "sdk-reference/variants",
-        "sdk-reference/conditionals"
+        "sdk-reference/features",
+        "sdk-reference/conitionals"
       ]
     },
     {

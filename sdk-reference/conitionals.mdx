@@ -1,0 +1,302 @@
+---
+title: "Conditionals"
+description: "Documentation for working with conditional feature interventions"
+---
+
+Conditionals allow you to define dynamic feature interventions that are applied based on the activation patterns of other features during model inference. This enables creating more sophisticated steering behaviors that respond to the content being generated.
+
+Before using the Conditionals API, you'll need to find the [features](/sdk-reference/features) you want to intervene on, and a [model variant](/sdk-reference/variants):
+
+## Examples
+
+### Basic Conditional Intervention
+
+Apply pirate-themed features only when whale-related content is detected:
+
+```python
+# Find relevant features
+whale_feature = client.features.search(
+    "whales", model=variant, top_k=1
+)
+
+pirate_features = client.features.search(
+    "talk like a pirate", model=variant, top_k=5
+)
+
+# Set up conditional intervention
+variant.set_when(whale_feature > 0.75, {
+    pirate_features[0]: 1.0,
+    pirate_features[1]: 0.5
+})
+
+# The model will now talk like a pirate when discussing whales
+response = client.chat.completions.create(
+    messages=[{"role": "user", "content": "Tell me about whales."}],
+    model=variant
+)
+```
+
+### Aborting Generation
+
+Stop generation if certain content is detected:
+
+```python
+# Abort if whale features are too strong
+variant.abort_when(whale_feature > 0.75)
+
+try:
+    response = client.chat.completions.create(
+        messages=[{"role": "user", "content": "Tell me about whales."}],
+        model=variant
+    )
+except goodfire.exceptions.InferenceAbortedException:
+    print("Generation aborted due to whale content")
+```
+
+### Auto-Generated Conditionals
+
+Use natural language to automatically generate conditional statements:
+
+```python
+# Generate conditional based on description
+conditional = goodfire.conditional.AutoConditional(
+    "parrots",
+    client=client,
+    model="meta-llama/Llama-3-70B-Instruct",
+    num_features_to_use=5
+)
+
+# Apply feature edits when condition is met
+variant.set_when(conditional, {
+    feature: 0.5
+})
+```
+
+## Creating Conditionals
+
+### Comparison Operators
+
+You can create conditionals by comparing features or feature groups with numeric values or other features using standard comparison operators. This creates a <a href="#conditional">Conditional</a> object that can be used in steering behaviors.
+
+```python
+# Compare feature to numeric value
+condition = feature > 0.75
+
+# Compare feature group to numeric value
+condition = feature_group >= 0.5
+
+# Compare features to each other
+condition = feature1 < feature2
+```
+
+Supported operators:
+
+- `==` (equal)
+- `!=` (not equal)
+- `<` (less than)
+- `<=` (less than or equal)
+- `>` (greater than)
+- `>=` (greater than or equal)
+
+### Logical Operators
+
+Multiple conditions can be combined using logical operators to create a <a href="#conditionalgroup">ConditionalGroup</a>:
+
+```python
+# AND operator
+condition = (feature1 > 0.5) & (feature2 < 0.3)
+
+# OR operator
+condition = (feature1 > 0.5) | (feature2 > 0.5)
+```
+
+## Using Conditionals
+
+### set_when()
+
+Apply feature interventions when a condition is met.
+
+**Parameters:**
+
+<ResponseField name="condition" type="ConditionalGroup" required>
+  The <a href="#conditionalgroup">ConditionalGroup</a> that triggers the
+  intervention
+</ResponseField>
+
+<ResponseField
+  name="values"
+  type="Union[FeatureEdits, dict[Union[Feature, FeatureGroup], float]]"
+  required
+>
+  Feature edits to apply when condition is met
+</ResponseField>
+
+**Returns:** None
+
+**Example:**
+
+```python
+# Set pirate features when whale features are detected
+variant.set_when(whale_feature > 0.75, {
+    pirate_features[0]: 1.0,
+    pirate_features[1]: 0.5
+})
+```
+
+### abort_when()
+
+Abort inference when a condition is met by raising an InferenceAbortedException.
+
+**Parameters:**
+
+<ResponseField name="condition" type="ConditionalGroup" required>
+  The <a href="#conditionalgroup">ConditionalGroup</a> that triggers the abort
+</ResponseField>
+
+**Returns:** None
+
+**Example:**
+
+```python
+# Abort if whale features are too strong
+variant.abort_when(whale_feature > 0.75)
+
+try:
+    response = client.chat.completions.create(
+        messages=[{"role": "user", "content": "Tell me about whales."}],
+        model=variant
+    )
+except goodfire.exceptions.InferenceAbortedException:
+    # Handle abort case
+    pass
+```
+
+### handle_when()
+
+Register a custom handler function to be called when a condition is met.
+
+**Parameters:**
+
+<ResponseField name="condition" type="ConditionalGroup" required>
+  The <a href="#conditionalgroup">ConditionalGroup</a> that triggers the handler
+</ResponseField>
+
+<ResponseField
+  name="handler"
+  type="Callable[[InferenceContext], None]"
+  required
+>
+  Function that takes an <a href="#inferencecontext">InferenceContext</a> and
+  returns None
+</ResponseField>
+
+**Returns:** None
+
+**Example:**
+
+```python
+def custom_handler(context: InferenceContext):
+    # Custom handling logic
+    pass
+
+variant.handle_when(whale_feature > 0.5, custom_handler)
+```
+
+## AutoConditional
+
+The AutoConditional utility helps automatically generate conditional statements based on natural language descriptions.
+
+**Parameters:**
+
+<ResponseField name="specification" type="str" required>
+  Natural language description of the desired condition
+</ResponseField>
+
+<ResponseField name="client" type="Client" required>
+  Goodfire client instance
+</ResponseField>
+
+<ResponseField name="model" type="Union[str, Variant]" required>
+  Model to use for generating conditions
+</ResponseField>
+
+<ResponseField name="num_features_to_use" type="int" required>
+  Number of features to include in condition
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="conditional" type="ConditionalGroup">
+  Generated <a href="#conditionalgroup">ConditionalGroup</a>
+</ResponseField>
+
+**Example:**
+
+```python
+conditional = goodfire.conditional.AutoConditional(
+    "parrots",
+    client=client,
+    model="meta-llama/Llama-3-70B-Instruct",
+    num_features_to_use=5
+)
+
+variant.set_when(conditional, {
+    feature: 0.5
+})
+```
+
+## Best Practices
+
+- Use conditional interventions to create context-aware steering behaviors
+- Combine multiple conditions with logical operators for more precise control
+- Handle aborted inferences gracefully in your application
+- Test conditions thoroughly to ensure desired behavior
+- Consider using AutoConditional for quick prototyping
+
+## Classes
+
+### ConditionalGroup
+
+A group of conditions combined with logical operators.
+
+<Expandable title="Properties">
+<ParamField body="conditionals" type="list[Conditional]">
+  List of individual <a href="#conditional">Conditional</a> objects in the group
+</ParamField>
+
+<ParamField body="operator" type="JOIN_OPERATOR">
+  Logical operator ("AND" or "OR") used to join conditions
+</ParamField>
+</Expandable>
+
+### Conditional
+
+A single conditional expression comparing features.
+
+<Expandable title="Properties">
+<ParamField body="left_hand" type="FeatureGroup">
+  Left side of the comparison
+</ParamField>
+
+<ParamField body="right_hand" type="Union[Feature, FeatureGroup, float]">
+  Right side of the comparison
+</ParamField>
+
+<ParamField body="operator" type="CONDITIONAL_OPERATOR">
+  Comparison operator used
+</ParamField>
+</Expandable>
+
+### InferenceContext
+
+Context object containing information about the current inference state.
+
+<Expandable title="Properties">
+<ParamField body="tokens" type="list[Token]">
+  List of tokens in the current context
+</ParamField>
+
+<ParamField body="matrix" type="NDArray">
+  Feature activation matrix
+</ParamField>
+</Expandable>

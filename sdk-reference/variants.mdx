@@ -1,134 +1,209 @@
 ---
-title: "Variants API Reference"
-description: "Documentation for the Goodfire Variants API"
+title: "Variants"
+description: "Documentation for working with model variants"
 ---
 
-The Variants API provides methods for working with model variants. Variants allow you to modify model behavior by adjusting feature activations.
+Variants are edits to a model that allow you to modify model behavior by adjusting feature activations and defining conditional behaviors.
+
+## Creating Variants
+
+### Basic Usage
+
+Create a variant by instantiating the `Variant` class with a base model:
+
+```python
+from goodfire import Variant
+
+# Create a variant from a base model
+variant = Variant("meta-llama/Llama-3.3-70B-Instruct")
+
+# Set feature modifications
+variant.set(feature, value=1.5)  # Value typically between -1 and 1
+```
+
+### Conditional Behaviors
+
+You can define conditional behaviors using `set_when`, `abort_when`, and `handle_when`:
+
+```python
+# Activate pirate features when whale features are detected
+variant.set_when(whale_feature > 0.75, {
+    pirate_features[0]: 1.0
+})
+
+# Abort generation if certain features are too strong
+variant.abort_when(inappropriate_feature > 0.8)
+
+# Custom handler when condition is met
+def my_handler(context):
+    # Handle the condition
+    pass
+
+variant.handle_when(condition, my_handler)
+```
 
 ## Methods
 
-### get()
+### set()
 
-Get a model variant by ID.
-
-**Parameters:**
-
-<ResponseField name="variant_id" type="str" required>
-  ID of the variant to retrieve
-</ResponseField>
-
-**Returns:** `Variant`
-
-**Example:**
-
-```python
-# Get a specific variant
-variant = await client.variants.get("variant_123")
-
-# Print variant details
-print(f"Base model: {variant.base_model}")
-```
-
-### list()
-
-List all available model variants.
-
-**Parameters:** None
-
-**Returns:** `list[VariantMetaData]`
-
-**Example:**
-
-```python
-# List all variants
-variants = await client.variants.list()
-
-# Print variant names and IDs
-for variant in variants:
-    print(f"{variant.name}: {variant.id}")
-```
-
-### create()
-
-Create a new model variant.
+Set a feature modification.
 
 **Parameters:**
 
-<ResponseField name="variant" type="Variant" required>
-  Variant object with desired modifications
+<ResponseField name="feature" type="Feature | FeatureGroup" required>
+  Feature or feature group to modify
 </ResponseField>
 
-<ResponseField name="name" type="str" required>
-  Name for the new variant
+<ResponseField name="value" type="float" required>
+  Modification value (typically between -1 and 1)
 </ResponseField>
-
-**Returns:** `str` - ID of the created variant
 
 **Example:**
 
 ```python
-# Create a variant that modifies a feature
-variant = Variant("meta-llama/Meta-Llama-3-8B-Instruct")
-variant.set(feature, value=1.5, mode="multiply")
+# Set a single feature
+variant.set(formal_feature, 0.5)
 
-# Create the variant
-variant_id = await client.variants.create(
-    variant=variant,
-    name="More formal variant"
+# Set multiple features at once
+variant.set({
+    formal_feature: 0.5,
+    casual_feature: -0.3
+})
+```
+
+### set_when()
+
+Define conditional feature modifications.
+
+**Parameters:**
+
+<ResponseField name="condition" type="ConditionalGroup" required>
+  Condition that triggers the modifications
+</ResponseField>
+
+<ResponseField
+  name="values"
+  type="dict[Feature, float] | FeatureEdits"
+  required
+>
+  Feature modifications to apply when condition is met
+</ResponseField>
+
+**Example:**
+
+```python
+# Activate pirate features when whale features are detected
+variant.set_when(whale_feature > 0.75, {
+    pirate_features[0]: 1.0
+})
+```
+
+### abort_when()
+
+Abort generation when a condition is met.
+
+**Parameters:**
+
+<ResponseField name="condition" type="ConditionalGroup" required>
+  Condition that triggers the abort
+</ResponseField>
+
+**Example:**
+
+```python
+# Abort if inappropriate content is detected
+variant.abort_when(inappropriate_feature > 0.8)
+
+try:
+    response = client.chat.completions.create(
+        messages=[{"role": "user", "content": "..."}],
+        model=variant,
+        stream=False
+    )
+except goodfire.exceptions.InferenceAbortedException:
+    # Handle the abort case
+    pass
+```
+
+### handle_when()
+
+Define a custom handler for when a condition is met.
+
+**Parameters:**
+
+<ResponseField name="condition" type="ConditionalGroup" required>
+  Condition that triggers the handler
+</ResponseField>
+
+<ResponseField name="handler" type="Callable" required>
+  Function to call when condition is met
+</ResponseField>
+
+**Example:**
+
+```python
+def my_handler(context):
+    # Custom handling logic
+    pass
+
+variant.handle_when(condition, my_handler)
+```
+
+### reset()
+
+Remove all feature modifications.
+
+**Example:**
+
+```python
+variant.reset()
+```
+
+### clear()
+
+Remove modifications for specific features.
+
+**Parameters:**
+
+<ResponseField name="feature" type="Feature | FeatureGroup" required>
+  Feature(s) to clear modifications for
+</ResponseField>
+
+**Example:**
+
+```python
+variant.clear(feature)
+```
+
+## Serialization
+
+Variants can be serialized to and from JSON:
+
+```python
+# Save variant to JSON
+variant_json = variant.json()
+
+# Load variant from JSON
+loaded_variant = Variant.from_json(variant_json)
+```
+
+## Using with OpenAI SDK
+
+Variants are compatible with the OpenAI SDK:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="YOUR_GOODFIRE_API_KEY",
+    base_url="https://api.goodfire.ai/api/inference/v1"
 )
-```
 
-### update()
-
-Update an existing model variant.
-
-**Parameters:**
-
-<ResponseField name="id" type="str" required>
-  ID of the variant to update
-</ResponseField>
-
-<ResponseField name="variant" type="Variant" required>
-  Updated variant object
-</ResponseField>
-
-<ResponseField name="new_name" type="str">
-  Optional new name for the variant
-</ResponseField>
-
-**Returns:** None
-
-**Example:**
-
-```python
-# Update a variant's configuration
-variant = await client.variants.get("variant_123")
-variant.set(feature, value=2.0, mode="multiply")
-
-await client.variants.update(
-    id="variant_123",
-    variant=variant,
-    new_name="Even more formal variant"
+response = client.chat.completions.create(
+    messages=[{"role": "user", "content": "Hello"}],
+    model=variant.base_model,
+    extra_body={"controller": variant.controller.json()}
 )
-```
-
-### delete()
-
-Delete a model variant.
-
-**Parameters:**
-
-<ResponseField name="id" type="str" required>
-  ID of the variant to delete
-</ResponseField>
-
-**Returns:** None
-
-**Example:**
-
-```python
-# Delete a variant
-await client.variants.delete("variant_123")
 ```
 
 ## Objects
