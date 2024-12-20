@@ -18,28 +18,45 @@ from goodfire import Variant
 variant = Variant("meta-llama/Llama-3.3-70B-Instruct")
 
 # Set feature modifications
-variant.set(feature, value=1.5)  # Value typically between -1 and 1
+variant.set(feature, value=0.5)  # Value typically between -1 and 1, but 0.5 is a safe default
 ```
 
-### Conditional Behaviors
-
-You can define conditional behaviors using `set_when`, `abort_when`, and `handle_when`:
+## Creating Variants
 
 ```python
+from goodfire import Variant
+
+# Create a variant from a base model
+variant = Variant("meta-llama/Llama-3.1-8B-Instruct")
+
+# Search for a feature to modify
+feature = client.features.search("formal writing style", model=variant, top_k=1)[0]
+
+# Set feature modifications
+variant.set(feature, 0.5)  # Value typically between -1 and 1
+```
+
+## Conditional Controls
+
+You can create variants that respond dynamically to feature activations:
+
+```python
+# First get some features to work with
+whale_feature = client.features.search("whales", model=variant, top_k=1)[0]
+pirate_feature = client.features.search("pirate speech", model=variant, top_k=1)[0]
+
 # Activate pirate features when whale features are detected
 variant.set_when(whale_feature > 0.75, {
-    pirate_features[0]: 1.0
+    pirate_feature: 0.5
 })
 
 # Abort generation if certain features are too strong
-variant.abort_when(inappropriate_feature > 0.8)
+variant.abort_when(whale_feature > 0.9)
 
 # Custom handler when condition is met
 def my_handler(context):
-    # Handle the condition
-    pass
+    print(f"Whale feature activated with strength: {context.activations[whale_feature]}")
 
-variant.handle_when(condition, my_handler)
 ```
 
 ## Methods
@@ -125,30 +142,6 @@ except goodfire.exceptions.InferenceAbortedException:
     pass
 ```
 
-### handle_when()
-
-Define a custom handler for when a condition is met.
-
-**Parameters:**
-
-<ResponseField name="condition" type="ConditionalGroup" required>
-  Condition that triggers the handler
-</ResponseField>
-
-<ResponseField name="handler" type="Callable" required>
-  Function to call when condition is met
-</ResponseField>
-
-**Example:**
-
-```python
-def my_handler(context):
-    # Custom handling logic
-    pass
-
-variant.handle_when(condition, my_handler)
-```
-
 ### reset()
 
 Remove all feature modifications.
@@ -206,7 +199,7 @@ response = client.chat.completions.create(
 )
 ```
 
-## Objects
+## Classes
 
 ### VariantMetaData
 
@@ -225,33 +218,3 @@ Metadata about a model variant.
 <ResponseField name="id" type="str">
   Unique identifier for the variant
 </ResponseField>
-
-### Variant
-
-Represents a model variant with modified feature behaviors.
-
-**Methods:**
-
-<ResponseField name="set" type="method">
-  Set a feature modification.
-
-```python
-variant.set(
-    feature,      # Feature to modify
-    value=1.5,    # Modification value
-    mode="multiply"  # Modification mode
-)
-```
-
-</ResponseField>
-
-**Example:**
-
-```python
-# Create a variant
-variant = Variant("meta-llama/Meta-Llama-3-8B-Instruct")
-
-# Modify multiple features
-variant.set(formal_feature, value=1.5, mode="multiply")
-variant.set(casual_feature, value=0.5, mode="multiply")
-```

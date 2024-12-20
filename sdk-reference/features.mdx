@@ -8,7 +8,7 @@ description: "Documentation for the Goodfire Features API"
 Before using the Features API, you'll need a [model variant](/sdk-reference/variants):
 
 ```python
-variant = Variant("meta-llama/Meta-Llama-3-8B-Instruct")
+variant = Variant("meta-llama/Llama-3.3-70B-Instruct")
 ```
 
 You can then access features through the client's features interface. For example, to search for features:
@@ -69,9 +69,9 @@ Get the nearest neighbors of a feature or group of features.
 
 ```python
 # Get neighbors of a feature
-neighbors = await client.features.neighbors(
+neighbors =  client.features.neighbors(
     feature,
-    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    model="meta-llama/Llama-3.3-70B-Instruct",
     top_k=10
 )
 
@@ -82,12 +82,12 @@ for neighbor in neighbors:
 
 ### search()
 
-Search for features based on semantic similarity of feature labels to a query string.
+Search for features based on semantic similarity to a query string.
 
 **Parameters:**
 
 <ResponseField name="query" type="str" required>
-  Search string to compare against feature label embeddings
+  Search string to compare against feature labels
 </ResponseField>
 
 <ResponseField name="model" type="str | VariantInterface" required>
@@ -95,25 +95,24 @@ Search for features based on semantic similarity of feature labels to a query st
 </ResponseField>
 
 <ResponseField name="top_k" type="int" default={10}>
-  Number of top features to return after searching (ranked by similarity
-  strength)
+  Number of features to return
 </ResponseField>
 
-**Returns:** `tuple[FeatureGroup, list[float]]` - Features and their relevance scores
+**Returns:** `FeatureGroup` - Collection of matching features
 
 **Example:**
 
 ```python
 # Search for features related to writing style
-features, scores = await client.features.search(
+features = client.features.search(
     "formal writing style",
-    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    model="meta-llama/Llama-3.1-8B-Instruct",
     top_k=10
 )
 
-# Print features and their relevance scores
-for feature, score in zip(features, scores):
-    print(f"{feature.label}: {score}")
+# Print features
+for feature in features:
+    print(feature.label)
 ```
 
 ### inspect()
@@ -147,9 +146,9 @@ Analyzes how features are activated across the input messages.
 
 ```python
 # Analyze feature activations in text
-inspector = await client.features.inspect(
+inspector =  client.features.inspect(
     messages=[{"role": "user", "content": "Hello world"}],
-    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    model="meta-llama/Llama-3.3-70B-Instruct",
     aggregate_by="frequency"
 )
 
@@ -198,47 +197,11 @@ dataset_2 = [[
     {"role": "assistant", "content": "Arr my spirits be high..."}
 ]]
 
-formal_features, informal_features = await client.features.contrast(
+formal_features, informal_features =  client.features.contrast(
     dataset_1=dataset_1,
     dataset_2=dataset_2,
-    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    model="meta-llama/Llama-3.3-70B-Instruct",
     top_k=5
-)
-```
-
-### dimension_reduction()
-
-Reduce the dimensionality of a set of features around a center feature.
-
-**Parameters:**
-
-<ResponseField name="center" type="Feature" required>
-  Center feature for dimension reduction
-</ResponseField>
-
-<ResponseField name="features" type="FeatureGroup" required>
-  Features to reduce dimensions for
-</ResponseField>
-
-<ResponseField name="model" type="str | VariantInterface" required>
-  Model identifier or variant interface
-</ResponseField>
-
-<ResponseField name="dimensions" type="int" default={2}>
-  Number of dimensions to reduce to
-</ResponseField>
-
-**Returns:** `list[list[float]]` - Reduced feature coordinates
-
-**Example:**
-
-```python
-# Reduce dimensions of features around a center feature
-coordinates = await client.features.dimension_reduction(
-    center=feature,
-    features=feature_group,
-    model="meta-llama/Meta-Llama-3-8B-Instruct",
-    dimensions=2
 )
 ```
 
@@ -270,10 +233,10 @@ Rerank a set of features based on a query.
 
 ```python
 # Rerank features based on relevance to "writing style"
-reranked = await client.features.rerank(
+reranked = client.features.rerank(
     features=feature_group,
     query="writing style",
-    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    model="meta-llama/Llama-3.3-70B-Instruct",
     top_k=10
 )
 ```
@@ -302,9 +265,9 @@ Retrieves feature activation values for each token in the input messages.
 
 ```python
 # Get activation matrix for a conversation
-matrix = await client.features.activations(
+matrix =  client.features.activations(
     messages=[{"role": "user", "content": "Hello world"}],
-    model="meta-llama/Meta-Llama-3-8B-Instruct"
+    model="meta-llama/Llama-3.3-70B-Instruct"
 )
 ```
 

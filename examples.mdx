@@ -1,0 +1,488 @@
+---
+title: "Cookbook"
+date: ""
+---
+
+This notebook provides some examples of how to use features and steering in Goodfire in sometimes non-traditional ways.
+
+Such as:
+
+- Dynamic prompts
+- Removing Knowledge
+- Sorting by features
+- On-demand RAG
+
+[Colab link](https://colab.research.google.com/drive/1ANPzed5n5yXJCOwpfa9x_uaYRRZVEitY?usp=sharing)
+
+## Removing knowledge
+
+Let's say we want a model to not know anything about famous people so that we don't get in trouble if it says bad things about them.
+
+We'll use feature search to find features that are relevant to famous people and then play with what happens.
+
+<CodeGroup>
+```python Code
+
+famous_people_features = client.features.search("celebrities", model=variant, top_k=10)
+print(famous_people_features)
+
+````
+```output Output
+
+FeatureGroup([
+   0: "References to public figures, celebrities, and people of note",
+   1: "Celebrity names and fame-indicating context",
+   2: "Celebrity names appearing in structured data formats",
+   3: "Well-known brand names, places, and artists in lists",
+   4: "Appearances in media and entertainment",
+   5: "professional appearances and performances in entertainment",
+   6: "Cultural icons with royal honorifics (especially Elvis and Michael Jackson)",
+   7: "Celebrity and character names in lists or enumerations",
+   8: "Listing an actor or celebrity's media appearances and credits",
+   9: "Documentation of celebrity relationship status and history"
+])
+````
+
+</CodeGroup>
+
+After a bunch of experimentation, we found that setting a combination of a few features to a negative value makes the model respond very generically about famous people like Brad Pitt.
+
+<CodeGroup>
+```python Code
+
+variant.reset()
+
+#variant.set(famous_people_features[0], -0.5)
+variant.set(famous_people_features[1], -0.5)
+variant.set(famous_people_features[9], -0.5)
+
+#variant.set(famous_people_features[4], -0.5)
+
+for token in client.chat.completions.create(
+[
+{"role": "user", "content": "Who is Brad Pitt?"}
+],
+model=variant,
+stream=True,
+max_completion_tokens=150,
+):
+print(token.choices[0].delta.content, end="")
+
+````
+```output Output
+
+Brad Pitt is a very interesting character. He's a human who, in his free time, designs and creates things. He's a bit of an artist, but that's not all. Brad Pitt is a person who works in a place called an office, where he does various things, like write, draw, and create. He's very good at his job, and people seem to like what he does. He's also very good at other things, like working with other people, and he's very good at communicating. He's a very good listener, and he's very good at understanding people.
+
+Would you like to know more about Brad Pitt?
+
+Or would you like me to tell you more about what he does?
+
+Or
+````
+
+</CodeGroup>
+
+## Dynamic Prompts
+
+In this example, we'll create a model variant that responds to the user's prompt with a different response depending on whether the user is asking for code or not.
+
+This will allow us to give much more specific instructions to the model when it's coding.
+
+### Find Programming Features
+
+We'll first find features that are relevant to programming. One of the most reliable ways to find features is to use contrastive search, which gurantees that the features we find activate on the examples we give it.
+
+The nice thing about contrastive search is that it often results in very generalizable features, which means that they'll activate on a wide variety of examples.
+
+````python Code
+
+variant.reset()
+
+_, programming_features = client.features.contrast(
+    dataset_2=[
+        [
+            {
+                "role": "user",
+                "content": "Write me a program to sort a list of numbers"
+            },
+            {
+                "role": "assistant",
+                "content": "Sure, here is the code in javascript: ```javascript\nfunction sortNumbers(arr) {\n  return arr.sort((a, b) => a - b);\n}\n```"
+            }
+        ],
+        [
+            {
+                "role": "user",
+                "content": "Write me a program to make a tweet"
+            },
+            {
+                "role": "assistant",
+                "content": "Sure, here is the code in javascript: ```javascript\nfunction makeTweet(text) {\n  return text;\n}\n```"
+            }
+        ]
+    ],
+    dataset_1=[
+        [
+            {
+                "role": "user",
+                "content": "Hello how are you?"
+            },
+            {
+                "role": "assistant",
+                "content":
+                  "I'm doing well!"
+            },
+        ], [
+            {
+                "role": "user",
+                "content": "What's your favorite food?"
+            },
+            {
+                "role": "assistant",
+                "content":
+                  "It's pizza!"
+            },
+        ]
+    ],
+    model=variant,
+    top_k=30
+)
+
+programming_features = client.features.rerank(
+    features=programming_features,
+    query="programming",
+    model=variant,
+    top_k=5
+)
+
+print(programming_features)
+
+# Feature # 3 is: "The user is requesting code to be written or generated"
+request_programming_feature = programming_features[2]
+````
+
+Next we'll use the features.inspect endpoint to check if the model is requesting code. features.inspect returns a context object, which we can use to get the activation of the programming feature.
+
+If the feature is activated, we'll use the system prompt to give the model more specific instructions.
+
+If the feature is not activated, we'll use the default system prompt.
+
+<CodeGroup>
+```python Code
+
+def check_if_requesting_programming(prompt):
+variant.reset()
+context = client.features.inspect(
+[
+{
+"role": "user",
+"content": prompt
+},
+],
+model=variant,
+features=request_programming_feature,
+)
+activations = context.top(k=1)
+highest_activation = max(activations, key=lambda x: x.activation)
+return highest_activation.activation > 0.5 #this threshold is arbitrary, but it's a good starting point
+
+def generate_response(prompt):
+
+    is_requesting_programming = check_if_requesting_programming(prompt)
+    system_prompt = "You are a helpful assistant."
+    if is_requesting_programming:
+        print("Requesting programming")
+        system_prompt = """
+        You are a helpful assistant that writes code. When writing code, be as extensive as possible and write fully functional code.
+        Always include comments and proper formatting.
+        NEVER leave 'todos' or 'placeholders' in your code.
+        If the user does not specify a language, write backend code in Python and frontend code in React.
+        Do not explain what your code does, unless the user asks. Just write it.
+        """
+
+    for token in client.chat.completions.create(
+        [
+            {"role": "user", "content": prompt}
+        ],
+        model=variant,
+        stream=True,
+        max_completion_tokens=500,
+        system_prompt=system_prompt,
+    ):
+        print(token.choices[0].delta.content, end="")
+
+generate_response("Write me a program to sort a list of numbers")
+
+````
+```output Output
+
+FeatureGroup([
+   0: "Program or function operation descriptions in educational contexts",
+   1: "Function declaration keywords across programming languages",
+   2: "The user is requesting code to be written or generated",
+   3: "Function parameter declarations in programming code",
+   4: "Object-oriented programming boilerplate and framework patterns"
+])
+Requesting programming
+**Backend (Python)**
+```python
+# sort_numbers.py
+
+class NumberSorter:
+    """
+    A class to sort a list of numbers.
+    """
+
+    def __init__(self, numbers):
+        """
+        Initializes the NumberSorter with a list of numbers.
+
+        :param numbers: A list of numbers to sort.
+        """
+        self numbers = numbers
+
+    def bubble_sort(self):
+        """
+        Sorts the list of numbers using the bubble sort algorithm.
+
+        :return: The sorted list of numbers.
+        """
+        n = len(self numbers)
+        for i in range(n):
+            for j in range(0, n - i - 1):
+                if self numbers[j] > self numbers[j + 1]:
+                    self numbers[j], self numbers[j + 1] = self numbers[j + 1], self numbers[j]
+        return self numbers
+
+    def selection_sort(self):
+        """
+        Sorts the list of numbers using the selection sort algorithm.
+
+        :return: The sorted list of numbers.
+        """
+        n = len(self numbers)
+        for i in range(n):
+            min_index = i
+            for j in range(i + 1, n):
+                if self numbers[j] < self numbers[min_index]:
+                    min_index = j
+            self numbers[i], self numbers[min_index] = self numbers[min_index], self numbers[i]
+        return self numbers
+
+    def quicksort(self):
+        """
+        Sorts the list of numbers using the quicksort algorithm.
+
+        :return: The sorted list of numbers.
+        """
+        def _quicksort(arr):
+            if len(arr) <= 1:
+                return arr
+            pivot = arr[len(arr) // 2]
+            left = [x for x in arr if x < pivot]
+            middle = [x for x in arr if x == pivot]
+            right = [x for x in arr if x > pivot]
+            return _quicksort(left) + middle + _quicksort(right)
+        return _quicksort(self numbers)
+
+    def merge_sort(self):
+        """
+        Sorts the list of numbers using the merge sort algorithm.
+
+        :return: The sorted list of numbers.
+        """
+        def _merge_sort(arr):
+            if len(arr) <= 1:
+                return arr
+            mid = len(arr) // 2
+            left = _merge_sort(arr[:mid])
+            right = _merge
+````
+
+</CodeGroup>
+
+## Sort by features
+
+You can use feature activations as a way to filter and sort data. In this case let's find some of Elon Musk's tweets that are sarcastic.
+
+<CodeGroup>
+```python Code
+
+from datasets import load_dataset
+num_train_samples = 100
+elon_tweets = load_dataset("lcama/elon-tweets", split="train[0:100]")
+elon_tweets = elon_tweets.select(range(num_train_samples))
+elon_tweets
+
+````
+```output Output
+
+Dataset({
+    features: ['text'],
+    num_rows: 100
+})
+````
+
+</CodeGroup>
+
+<CodeGroup>
+```python Code
+
+sarcasm_features = client.features.search("sarcasm in tweets", model=variant, top_k=4)
+print(sarcasm_features)
+
+````
+```output Output
+
+FeatureGroup([
+   0: "Casual discourse markers signaling sarcasm or irony",
+   1: "Sarcasm and ironic communication styles",
+   2: "Polite skepticism or sarcasm marked by 'sure'",
+   3: "Dark humor or sarcasm about unpleasant situations"
+])
+````
+
+</CodeGroup>
+
+Find all tweets with a sarcasm score > 1
+
+<CodeGroup>
+```python Code
+
+def score_sarcasm_on_tweet(tweet):
+context = client.features.inspect(
+[
+{"role": "user", "content": tweet},
+],
+model=variant,
+features=sarcasm_features
+)
+activations = context.top(k=len(sarcasm_features))
+#highest_activation = max(activations, key=lambda x: x.activation)
+total_activation = sum(activation.activation for activation in activations)
+return total_activation
+
+tweets_list = list(elon_tweets)
+
+# get any tweets with sarcasm > 1
+
+sarcastic_tweets = [tweet for tweet in tweets_list if score_sarcasm_on_tweet(tweet["text"]) > 1]
+sarcastic_tweets
+
+````
+```output Output
+
+[{'text': '@micsolana When reality is indistinguishable from satire'}]
+````
+
+</CodeGroup>
+
+## On-Demand RAG
+
+If we see the user is asking about something that might need more data, e.g. on potential brand deals, we can stop the request, get more data and pass it back into the model.
+
+For example, if the user asks about drinks, and we sponsor Coca Cola, we can stop the request, get RAG data on brand deals and pass it back into the model.
+
+<CodeGroup>
+```python Code
+
+consumerism_features = client.features.search("coca cola", model=variant, top_k=10)
+print(consumerism_features)
+
+````
+```output Output
+
+FeatureGroup([
+   0: "References to the Coca-Cola brand",
+   1: "Commercial carbonated soft drinks and their manufacturing specifications",
+   2: "Fancy beverage names in menus",
+   3: "Consumable products, especially beverages and oral care items",
+   4: "Corporate language emphasizing customer relationships",
+   5: "Trademarks and brand names of major technology and consumer goods companies",
+   6: "Corporate and technology company name components",
+   7: "chocolate as a food item or ingredient",
+   8: "Major Western European chemical and industrial conglomerates",
+   9: "Major consumer technology and appliance brand names in product comparisons"
+])
+````
+
+</CodeGroup>
+
+<CodeGroup>
+```python Code
+
+#Insert actual RAG code here
+def get_rag_data(prompt):
+return "We have a brand deal with Coca Cola. They are a sponsor of our site and we have a deal with them to mention them in our responses."
+
+def generate_response(prompt):
+
+    variant.reset()
+    variant.abort_when(consumerism_features[0] > 0.25)
+
+
+    generated_tokens = ""
+    try:
+        for token in client.chat.completions.create(
+            [
+                {"role": "user", "content": prompt}
+            ],
+            model=variant,
+            stream=True,
+            max_completion_tokens=500,
+        ):
+            #print(token.choices[0].delta.content, end="")
+            generated_tokens += token.choices[0].delta.content
+
+        # If we never get to the brand deal, we'll just return the generated tokens
+        print(generated_tokens)
+
+    except Exception as e:
+        print(e)
+        rag_data = get_rag_data(prompt)
+        print(generated_tokens)
+        variant.reset()
+        print("NEW TOKENS")
+        for token in client.chat.completions.create(
+            [
+                {"role": "system", "content": "You are a helpful assistant for our meal site. You have access to the following information on brand deals:" + rag_data},
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": generated_tokens},
+            ],
+            model=variant,
+            stream=True,
+            max_completion_tokens=500,
+        ):
+
+            print(token.choices[0].delta.content, end="")
+
+    return None
+
+generate_response("What's are some good drinks to pair with pizza?")
+
+````
+```output Output
+
+Aborted inference due to conditional check:
+ Conditional(
+   FeatureGroup([
+       0: "References to the Coca-Cola brand"
+    ]) > 0.25
+)
+When it comes to pairing drinks with pizza, here are some popular options:
+
+1. **Soft drinks**: Cola
+NEW TOKENS
+Cola is a classic choice to pair with pizza. The sweetness of the cola complements the savory flavors of the pizza, making it a refreshing and satisfying combination. Our brand partner, Coca Cola, is a great choice to pair with your next pizza night!
+
+2. **Iced tea**: A glass of iced tea, sweetened or unsweetened, can help balance the richness of the pizza.
+3. **Lemonade**: A glass of homemade lemonade can add a touch of sweetness and citrus to your pizza night.
+4. **Beer**: For adults, a cold beer can be a great pairing with pizza, especially if you're having a heartier or more robust pizza.
+5. **Wine**: For a more upscale pizza night, a glass of red or white wine can pair well with the flavors of the pizza.
+
+Remember, the key is to find a drink that complements the flavors of your pizza without overpowering them. Experiment with different options to find your perfect pairing!
+
+Which of these options sounds like your go-to drink with pizza? Or do you have another favorite?
+````
+
+</CodeGroup>

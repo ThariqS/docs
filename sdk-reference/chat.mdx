@@ -20,11 +20,11 @@ client = goodfire.Client(
 )
 
 # Create a non-streaming completion
-response = await client.chat.completions.create(
+response =  client.chat.completions.create(
     messages=[
         {"role": "user", "content": "What is the capital of France?"}
     ],
-    model="meta-llama/Meta-Llama-3-8B-Instruct"
+    model="meta-llama/Llama-3.3-70B-Instruct"
 )
 print(response.choices[0].message.content)
 ```
@@ -37,7 +37,7 @@ async for chunk in client.chat.completions.create(
     messages=[
         {"role": "user", "content": "Write a short poem"}
     ],
-    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    model="meta-llama/Llama-3.3-70B-Instruct",
     stream=True
 ):
     print(chunk.choices[0].delta.content, end="")
@@ -47,7 +47,7 @@ async for chunk in client.chat.completions.create(
 
 ```python
 # Create a variant with feature modifications
-variant = goodfire.Variant("meta-llama/Meta-Llama-3-8B-Instruct")
+variant = goodfire.Variant("meta-llama/Llama-3.3-70B-Instruct")
 pirate_features = client.features.search(
     "talk like a pirate",
     model=variant,
@@ -71,11 +71,11 @@ for token in client.chat.completions.create(
 
 ```python
 # Get probabilities for specific tokens
-logits = await client.chat.logits(
+logits =  client.chat.logits(
     messages=[
         {"role": "user", "content": "The capital of France is"}
     ],
-    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    model="meta-llama/Llama-3.3-70B-Instruct",
     vocabulary=["Paris", "London", "Berlin"]
 )
 print(logits.logits)  # {"Paris": 0.92, "London": 0.05, "Berlin": 0.03}
@@ -136,11 +136,11 @@ Create a chat completion with the model.
 Non-streaming completion:
 
 ```python
-response = await client.chat.completions.create(
+response =  client.chat.completions.create(
     messages=[
         {"role": "user", "content": "What is the capital of France?"}
     ],
-    model="meta-llama/Meta-Llama-3-8B-Instruct"
+    model="meta-llama/Llama-3.3-70B-Instruct"
 )
 print(response.choices[0].message.content)
 ```
@@ -152,7 +152,7 @@ async for chunk in client.chat.completions.create(
     messages=[
         {"role": "user", "content": "Write a short poem"}
     ],
-    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    model="meta-llama/Llama-3.3-70B-Instruct",
     stream=True
 ):
     print(chunk.choices[0].delta.content, end="")
@@ -185,11 +185,11 @@ Compute token probabilities for the next token in a conversation.
 **Example:**
 
 ```python
-logits = await client.chat.logits(
+logits =  client.chat.logits(
     messages=[
         {"role": "user", "content": "The capital of France is"}
     ],
-    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    model="meta-llama/Llama-3.3-70B-Instruct",
     vocabulary=["Paris", "London", "Berlin"]
 )
 print(logits.logits)  # {"Paris": 0.92, "London": 0.05, "Berlin": 0.03}
