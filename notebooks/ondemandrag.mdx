@@ -1,0 +1,21 @@
+---
+title: "On Demand RAG"
+date: "2024-12-23"
+---
+
+By using [conditional interventions](/sdk-reference/conitionals) we can build a "on demand RAG" system.
+
+When we see the user is asking about something that might need more data, we can abort the request and get more data from an external source.
+
+In this example, we'll build a model that can insert brand deal data into the response when the user is asking about products.
+
+For example, if the user asks about drinks, and we sponsor Coca Cola, we can stop the request, get RAG data on brand deals and pass it back into the model.
+
+<a href="https://colab.research.google.com/drive/1HMQfco7cRT-ffAkcabvJusNJ0tVD4at8">
+  <img
+    src="https://colab.research.google.com/assets/colab-badge.svg"
+    alt="Open in Colab"
+    width="200px"
+    style={{ pointerEvents: "none" }}
+  />
+</a>

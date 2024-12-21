@@ -1,0 +1,126 @@
+---
+title: "AutoSteer"
+---
+
+AutoSteering allows you to automatically generate feature interventions based on natural language descriptions of desired behaviors. This provides an easy way to steer model outputs without manually selecting features.
+
+## Basic Usage
+
+The simplest way to use AutoSteer is with the `AutoEdit` method:
+
+```python
+# Create automatic feature edits for desired behavior
+edits = client.features.AutoEdit(
+    specification="be funny",  # Natural language description
+    model=variant,  # Model variant to use
+)
+
+# Apply the edits to your variant
+variant.set(edits)
+
+# The model will now attempt to be funnier
+response = client.chat.completions.create(
+    messages=[{"role": "user", "content": "Tell me a story"}],
+    model=variant
+)
+```
+
+## How It Works
+
+Under the hood, AutoSteer:
+
+1. Generates contrastive examples of content with and without the desired behavior
+2. Identifies the most relevant features that distinguish the behavior
+3. Determines optimal feature values to encourage the desired behavior
+4. Creates a set of feature edits that can be applied to the model
+
+## Advanced Usage
+
+### Customizing Number of Features
+
+You can control how many features are used in the generated edits:
+
+```python
+edits = client.features.AutoEdit(
+    specification="be concise",
+    model=variant,
+    num_features_to_use=4  # Use fewer features for more focused steering
+)
+```
+
+### Combining with Manual Edits
+
+AutoSteer edits can be combined with manual feature interventions:
+
+```python
+# Generate automatic edits
+auto_edits = client.features.AutoEdit(
+    specification="be professional",
+    model=variant
+)
+
+# Combine with manual feature edits
+variant.set({
+    **auto_edits,
+    manual_feature: 0.8
+})
+```
+
+### Using with Conditionals
+
+AutoSteer can be used within conditional statements:
+
+```python
+# Generate edits for desired behavior
+funny_edits = client.features.AutoEdit(
+    specification="be funny",
+    model=variant
+)
+
+# Apply edits conditionally
+variant.set_when(context_feature > 0.5, funny_edits)
+```
+
+## Best Practices
+
+- Use clear, specific behavior descriptions
+- Test generated edits to ensure desired results
+- Consider combining multiple AutoSteer edits for complex behaviors
+- Adjust number of features based on steering precision needed
+- Use with conditionals for context-aware behavior
+
+## API Reference
+
+### AutoEdit
+
+Generate automatic feature edits based on natural language description.
+
+**Parameters:**
+
+<ResponseField name="specification" type="str" required>
+  Natural language description of desired behavior
+</ResponseField>
+
+<ResponseField name="model" type="Union[str, Variant]" required>
+  Model or variant to use for generating edits
+</ResponseField>
+
+<ResponseField name="num_features_to_use" type="int" default="8">
+  Number of features to include in edits
+</ResponseField>
+
+**Returns:**
+
+<ResponseField name="edits" type="dict[Feature, float]">
+  Dictionary mapping features to their target values
+</ResponseField>
+
+**Example:**
+
+```python
+edits = client.features.AutoEdit(
+    specification="be more creative",
+    model=variant,
+    num_features_to_use=6
+)
+```

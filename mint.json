@@ -43,21 +43,24 @@
         "sdk-reference/chat",
         "sdk-reference/variants",
         "sdk-reference/features",
-        "sdk-reference/conitionals"
+        "sdk-reference/conitionals",
+        "sdk-reference/autosteer"
       ]
     },
     {
       "group": "Notebooks",
       "pages": [
         "notebooks/decision-trees",
-        "notebooks/latent-explorer",
-        "notebooks/advanced"
+        "notebooks/jailbreak",
+        "notebooks/ondemandrag",
+        "notebooks/dynamicprompts",
+        "notebooks/removing-knowledge",
+        "notebooks/sortingfeatures"
       ]
     }
   ],
   "footerSocials": {
-    "x": "https://x.com/mintlify",
-    "github": "https://github.com/mintlify",
-    "linkedin": "https://linkedin.com/company/mintlify"
+    "x": "https://x.com/GoodfireAI",
+    "linkedin": "https://www.linkedin.com/company/goodfire-ai/"
   }
 }
