@@ -1,6 +1,6 @@
 ---
 title: "Quickstart"
-description: "Get started with the Goodfire SDK"
+description: "Get started with the Goodfire Ember SDK"
 ---
 
 <Info>
@@ -9,7 +9,7 @@ description: "Get started with the Goodfire SDK"
   [support](mailto:contact@goodfire.ai).
 </Info>
 
-<a href="https://colab.research.google.com/drive/1xH4QVfPznqJ2pS90e4oEV1s8uzPPSRY9">
+<a href="https://colab.research.google.com/drive/1KsU3wMmNfsjkU-6xWTRr7_784sBE1tm3?usp=sharing" target="_blank">
   <img
     src="https://colab.research.google.com/assets/colab-badge.svg"
     alt="Open in Colab"
@@ -222,16 +222,14 @@ neighbors() helps you understand feature relationships beyond just their labels.
 
 
 <CodeGroup>
-```python Code
-
+```python Nearest Neighbors Code
 client.features.neighbors(
     funny_features[0],
     model=variant,
     top_k=5
 )
 ```
-```output Output
-
+```output Nearest Neighbors Output
 FeatureGroup([
    0: "Explaining or qualifying humorous/lighthearted content",
    1: "Detecting and responding appropriately to requests for potentially inappropriate humor",
@@ -247,16 +245,14 @@ Now, you can find more features that are similar to other features
 
 
 <CodeGroup>
-```python Code
-
+```python Nearest Neighbors
 client.features.neighbors(
     funny_features[2],
     model=variant,
     top_k=5
 )
 ```
-```output Output
-
+```output Out
 FeatureGroup([
    0: "Punctuation marking the punchline delivery in jokes",
    1: "The assistant is providing a numbered list of options or examples",
@@ -297,10 +293,8 @@ Let's specify two conversation datasets. The first has a typical helpful assista
 
 
 <CodeGroup>
-```python Code
-
+```python Contrastive Search Code
 variant.reset()
-
 default_conversation = [
     [
         {
@@ -313,7 +307,6 @@ default_conversation = [
         }
     ]
 ]
-
 joke_conversation = [
     [
         {
@@ -326,14 +319,12 @@ joke_conversation = [
         }
     ]
 ]
-
 helpful_assistant_features, joke_features = client.features.contrast(
     dataset_1=default_conversation,
     dataset_2=joke_conversation,
     model=variant,
     top_k=30
 )
-
 # Let's rerank to surface humor related features
 joke_features = client.features.rerank(
     features=joke_features,
@@ -341,11 +332,9 @@ joke_features = client.features.rerank(
     model=variant,
     top_k=5
 )
-
 joke_features
 ```
-```output Output
-
+```output Contrastive Search Output
 FeatureGroup([
    0: "Punchline moments in setup-punchline format jokes",
    1: "Setup phrases for question-answer format jokes",
@@ -363,11 +352,9 @@ Note that we could also explore removing some of the helpful_assistant features.
 
 
 <CodeGroup>
-```python Code
-
+```python Contrastive Search Set Features Code
 variant.reset()
 variant.set(joke_features[0,1], 0.6)
-
 for token in client.chat.completions.create(
     [
         {"role": "user", "content": "Hello. Tell me about whales."}
@@ -378,8 +365,7 @@ for token in client.chat.completions.create(
 ):
     print(token.choices[0].delta.content, end="")
 ```
-```output Output
-
+```output Contrastive Search Set Features Output
 You call a group of whales? A pod? Because you have a whale of a time when you're having a party? I said to the whale? "Why did you go to the party?" He said, "Because I heard it was an orca-stra?" I'm fin-tastic at telling jokes about the ocean. I'm reading a book about a fish? It's fin-tastic? I'm fin-ished? I'm reading a book about a fish? It's fin
 ```
 </CodeGroup>
@@ -399,12 +385,11 @@ First, let's reset the variant and pick out the funny feature
 
 
 <CodeGroup>
-```python Code
-
+```python Conditional Logic Code
 variant.reset()
 funny_features
 ```
-```output Output
+```output Conditional Logic Output
 
 FeatureGroup([
    0: "descriptions of sophisticated or edgy senses of humor",
@@ -426,8 +411,7 @@ Now, let's find a features where the model is talking like a pirate
 
 
 <CodeGroup>
-```python Code
-
+```python Pirate Features Code
 pirate_features = client.features.search(
     "talk like a pirate",
     model=variant,
@@ -435,8 +419,7 @@ pirate_features = client.features.search(
 )
 print(pirate_features[0])
 ```
-```output Output
-
+```output Pirate Features Output
 Feature("The assistant should roleplay as a pirate")
 ```
 </CodeGroup>
@@ -446,12 +429,10 @@ Now, let's set up behaviour so that when the model is talking like a pirate, it 
 
 
 <CodeGroup>
-```python Code
-
+```python Conditional Logic Set Features Code
 variant.set_when(pirate_features[0] > 0.75, {
     funny_features[0]: 0.7,
 })
-
 # The model will now try to be funny when talking about pirates
 response = client.chat.completions.create(
     messages=[{"role": "user", "content": "talk like a pirate and tell me about whales"}],
@@ -459,8 +440,7 @@ response = client.chat.completions.create(
 )
 print(response.choices[0].message["content"])
 ```
-```output Output
-
+```output Conditional Logic Set Features Output
 Yer lookin' fer some oceanic humor, eh? Alright, let's set sail fer some laughs. I've got a few sea stories, but I'll keep 'em as dry as the sense of humor of a retired pirate. Here's one: Why did the sea captain bring a sense of humor? Because he's always funny, even on land. That's how I find humor. Now, let's move on to the sense of humor. Why was it funny? Well, it's not, but I'm here to tell you that's what I call a sense of humor. Now, let's talk about everything else, but not funny. I'm done here.
 ```
 </CodeGroup>
@@ -469,11 +449,9 @@ Yer lookin' fer some oceanic humor, eh? Alright, let's set sail fer some laughs.
 Well I don't know if I laughed at that, and maybe the model isn't very good at pirate jokes, so let's set up behaviour to stop generating if the pirate features are too strong.
 
 
-```python Code
-
+```python Abort when Pirate Features are too strong
 # Abort if pirate features are too strong
 variant.abort_when(pirate_features > 0.75)
-
 try:
     response = client.chat.completions.create(
         messages=[{"role": "user", "content": "Tell me about pirates."}],
@@ -487,8 +465,7 @@ except goodfire.exceptions.InferenceAbortedException:
 If you aren't sure of the features you want to condition on, use AutoConditional with a specified prompt to get back an automatically generated condition.
 
 
-```python Code
-
+```python Auto Conditional Code
 # Generate auto conditional based on a description. This will automatically
 # choose the relevant features and conditional weight
 conditional = goodfire.conditional.AutoConditional(
@@ -519,18 +496,15 @@ Say you want to understand what model features are important when the model tell
 
 
 <CodeGroup>
-```python Code
-
+```python Inspect Code
 variant.reset()
-
 context = client.features.inspect(
     messages=joke_conversation[0],
     model=variant,
 )
 context
 ```
-```output Output
-
+```output Inspect Output
 ContextInspector(
    <|begin_of_text|><|start_header_id|>system<|end_header_id|>
    
@@ -551,13 +525,11 @@ From the context object, you can access a lookup object which can be used to loo
 
 
 <CodeGroup>
-```python Code
-
+```python Lookup Code
 lookup = context.lookup()
 lookup
 ```
-```output Output
-
+```output Lookup Output
 {41637: Feature("Start of a new conversation segment in chat format"),
  22058: Feature("Start of a new conversation segment"),
  13884: Feature("Start of a new conversation segment in chat format"),
@@ -572,13 +544,11 @@ You can select the top `k` activating features in the context, ranked by activat
 
 
 <CodeGroup>
-```python Code
-
+```python Inspect Top Features Code
 top_features = context.top(k=10)
 top_features
 ```
-```output Output
-
+```output Inspect Top Features Output
 FeatureActivations(
    0: (Feature("Assistant's initial friendly greeting to open a conversation"), 9)
    1: (Feature("Setup phrases in jokes and narratives"), 7)
@@ -599,19 +569,12 @@ You can also inspect individual tokens level feature activations. Let's see what
 
 
 <CodeGroup>
-```python Code
-
+```python Token Activations Code
 print(context.tokens[-3])
-
 token_acts = context.tokens[-3].inspect()
 token_acts
 ```
-```output Output
-
-Token(" investigator")
-```
-```output Output
-
+```output Token Activations Output
 FeatureActivations(
    0: (Feature("Active investigation or investigative activities"), 2.515625)
    1: (Feature("Detective fiction and investigative narratives"), 1.1796875)
@@ -627,16 +590,14 @@ FeatureActivations(
 
 
 <CodeGroup>
-```python Code
-
+```python Next Logits Code
 logits = client.chat.logits(
     messages=joke_conversation[0],
     model=variant,
 )
 logits.logits
 ```
-```output Output
-
+```output Next Logits Output
 {' I': 18.75,
  ' Would': 17.125,
  ' Hope': 16.625,
@@ -657,16 +618,14 @@ To run a machine learning pipeline at the feature level (for instance, for humor
 
 
 <CodeGroup>
-```python Code
-
+```python Matrix Code
 activations = client.features.activations(
     messages=joke_conversation[0],
     model=variant,
 )
 activations
 ```
-```output Output
-
+```output Matrix Output
 array([[0., 0., 0., ..., 0., 0., 0.],
        [0., 0., 0., ..., 0., 0., 0.],
        [0., 0., 0., ..., 0., 0., 0.],
@@ -679,12 +638,10 @@ array([[0., 0., 0., ..., 0., 0., 0.],
 
 
 <CodeGroup>
-```python Code
-
+```python Vector Code
 top_features.vector()
 ```
-```output Output
-
+```output Vector Output 
 array([0., 0., 0., ..., 0., 0., 0.])
 ```
 </CodeGroup>
@@ -697,13 +654,11 @@ There may be specific features whose activation patterns you're interested in ex
 
 
 <CodeGroup>
-```python Code
-
+```python Humor Features Code
 humor_features = client.features.search("jokes and humor", model=variant, top_k=15)
 humor_features
 ```
-```output Output
-
+```output Humor Features Output
 FeatureGroup([
    0: "The conversation involves telling or requesting jokes",
    1: "Meta-discussions and classifications of humor",
@@ -725,8 +680,7 @@ Now, let's see if these features are activating in the joke conversation.
 
 
 <CodeGroup>
-```python Code
-
+```python Inspect Humor Features Code
 context = client.features.inspect(
     messages=joke_conversation[0],
     model=variant,
@@ -734,8 +688,7 @@ context = client.features.inspect(
 )
 context
 ```
-```output Output
-
+```output Inspect Humor Features Output
 ContextInspector(
    <|begin_of_text|><|start_header_id|>system<|end_header_id|>
    
@@ -756,13 +709,11 @@ Now you can retrieve the top k activating *humor features* in the `context`. Thi
 
 
 <CodeGroup>
-```python Code
-
+```python Top Features Code
 humor_feature_acts = context.top(k=5)
 humor_feature_acts
 ```
-```output Output
-
+```output Top Features Output
 FeatureActivations(
    0: (Feature("Setup phrases in jokes and narratives"), 9)
    1: (Feature("Setup phrases for question-answer format jokes"), 7)
@@ -781,15 +732,13 @@ You can serialize a variant to JSON format for saving.
 
 
 <CodeGroup>
-```python Code
-
+```python Save Variant Code
 variant.reset()
 variant.set(pirate_features[0], 0.9)
 variant_json = variant.json()
 variant_json
 ```
-```output Output
-
+```output Save Variant Output
 {'base_model': 'meta-llama/Llama-3.3-70B-Instruct',
  'edits': [{'feature_id': 'a16920eb-459c-4862-9c42-d0711c9c700c',
    'feature_label': 'The assistant should roleplay as a pirate',
@@ -804,13 +753,11 @@ And load a variant from JSON format.
 
 
 <CodeGroup>
-```python Code
-
+```python Load Variant Code
 loaded_variant = goodfire.Variant.from_json(variant_json)
 loaded_variant
 ```
-```output Output
-
+```output Load Variant Output
 Variant(
    base_model=meta-llama/Llama-3.3-70B-Instruct,
    edits={
@@ -825,8 +772,7 @@ Now, let's generate a response with the loaded variant.
 
 
 <CodeGroup>
-```python Code
-
+```python Generate Response Code
 for token in client.chat.completions.create(
     [
         {"role": "user", "content": "tell me about whales"}
@@ -837,8 +783,7 @@ for token in client.chat.completions.create(
 ):
     print(token.choices[0].delta.content, end="")
 ```
-```output Output
-
+```output Generate Response Output
 Whales! They're the largest animals on Earth, with some species reachin' lengths of over 100 feet! They're mammals, just like us, but they live in the water. There's two main types: toothed whales (like orcas) and baleen whales (like blue whales). They're super social, too, often swimmin' in big groups. Some whales can even sing songs, like humpbacks! What'd you like to know more about, friend?
 ```
 </CodeGroup>
@@ -850,14 +795,12 @@ Whales! They're the largest animals on Earth, with some species reachin' lengths
 You can also work directly with the OpenAI SDK for inference since our endpoint is fully compatible.
 
 
-```python Code
-
+```python Install OpenAI Code
 !pip install openai --quiet
 ```
 
 
-```python Code
-
+```python OpenAI SDK Code
 from openai import OpenAI
 
 oai_client = OpenAI(
@@ -878,6 +821,5 @@ response.choices[0].message.content
 
 
 <Note>
-  For more advanced usage and detailed API reference, check out our [advanced
-  tutorial](/advanced) and [API documentation](/api-reference).
+  For more advanced usage and detailed API reference, check out our [SDK reference](/sdk-reference/) and [example notebooks](/notebooks/).
 </Note>

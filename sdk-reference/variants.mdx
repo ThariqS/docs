@@ -81,31 +81,46 @@ def my_handler(context):
 
 ### set()
 
-Set a feature modification.
+Set feature modifications. This method is overloaded to handle different input types.
+
+**Signatures:**
+
+```python
+def set(self, feature: Feature | FeatureGroup, value: float)
+def set(self, edits: dict[Feature, float] | FeatureEdits)
+```
 
 **Parameters:**
 
-<ResponseField name="feature" type="Feature | FeatureGroup" required>
-  Feature or feature group to modify
+<ResponseField name="feature" type="Feature | FeatureGroup">
+  Single feature or feature group to modify. Required when using the first signature.
 </ResponseField>
 
-<ResponseField name="value" type="float" required>
-  Modification value (typically between -1 and 1)
+<ResponseField name="value" type="float">
+  Modification value (typically between -1 and 1). Required when using the first signature.
 </ResponseField>
 
-**Example:**
+<ResponseField name="edits" type="dict[Feature, float] | FeatureEdits">
+  Dictionary of features and their values, or a FeatureEdits object. Required when using the second signature.
+</ResponseField>
 
-```python Set features
+**Examples:**
+
+```python
+# Single feature modification
 formal_feature = client.features.search("formal writing style", model=variant, top_k=1)[0]
-casual_feature = client.features.search("casual writing style", model=variant, top_k=1)[0]
-# Set a single feature
 variant.set(formal_feature, 0.5)
 
-# Set multiple features at once
+# Multiple features at once using dict
+casual_feature = client.features.search("casual writing style", model=variant, top_k=1)[0]
 variant.set({
     formal_feature: 0.5,
     casual_feature: -0.3
 })
+
+# Using FeatureEdits object
+edits = client.features.AutoSteer("be funny", model=variant)
+variant.set(edits)
 ```
 
 ### set_when()
