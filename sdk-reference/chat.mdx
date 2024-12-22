@@ -12,11 +12,11 @@ Once you have a [model variant](/sdk-reference/variants), you can use it to crea
 
 ### Basic Chat Completion
 
-```python
+<CodeGroup name="Basic Chat Completion">
+```python Code
 # Initialize the client
 client = goodfire.Client(
-    'your-api-key',
-    base_url="https://api.goodfire.ai"
+    '{YOUR_API_KEY}',
 )
 
 # Create a non-streaming completion
@@ -26,14 +26,19 @@ response =  client.chat.completions.create(
     ],
     model="meta-llama/Llama-3.3-70B-Instruct"
 )
-print(response.choices[0].message.content)
-```
 
+print(response.choices[0].message["content"])
+```
+```output Output
+The capital of France is Paris.
+```
+</CodeGroup>
 ### Streaming Chat Completion
 
-```python
+<CodeGroup name="Streaming Chat Completion">
+```python Streaming Chat Completion
 # Stream the response tokens
-async for chunk in client.chat.completions.create(
+for chunk in client.chat.completions.create(
     messages=[
         {"role": "user", "content": "Write a short poem"}
     ],
@@ -42,10 +47,19 @@ async for chunk in client.chat.completions.create(
 ):
     print(chunk.choices[0].delta.content, end="")
 ```
+```output Output Poem
+Here's a short poem:
 
+Golden sunsets paint the sky,
+Peaceful evening, twilight high.
+Stars appear, and night grows deep,
+A time for rest, a time to sleep.
+```
+</CodeGroup>
 ### Using with Model Variants
 
-```python
+<CodeGroup name="Using with Model Variants">
+```python Using with Model Variants
 # Create a variant with feature modifications
 variant = goodfire.Variant("meta-llama/Llama-3.3-70B-Instruct")
 pirate_features = client.features.search(
@@ -62,25 +76,31 @@ for token in client.chat.completions.create(
     ],
     model=variant,
     stream=True,
-    max_completion_tokens=50,
+    max_completion_tokens=100,
 ):
     print(token.choices[0].delta.content, end="")
 ```
-
+```output Piratey Output
+The ocean be a vast and wondrous place! Coverin' over 70% o' the Earth's surface, it's home to a treasure trove o' sea creatures, from tiny plankton to massive blue whales. The ocean's got a lot o' secrets, and it's up to us to explore 'em and learn 'bout the world below the waves.
+```
+</CodeGroup>
 ### Computing Token Probabilities
 
-```python
-# Get probabilities for specific tokens
+<CodeGroup name="Token Probabilities">
+```python Token Probabilities
 logits =  client.chat.logits(
     messages=[
         {"role": "user", "content": "The capital of France is"}
     ],
     model="meta-llama/Llama-3.3-70B-Instruct",
-    vocabulary=["Paris", "London", "Berlin"]
+    filter_vocabulary=["Paris", "London", "Berlin"]
 )
-print(logits.logits)  # {"Paris": 0.92, "London": 0.05, "Berlin": 0.03}
+print(logits.logits)
 ```
-
+```output Logit Output
+{'Paris': 8.75, 'Berlin': 7.96875, 'London': 4.3125}
+```
+</CodeGroup>
 ## Methods
 
 ### create()
@@ -135,20 +155,20 @@ Create a chat completion with the model.
 
 Non-streaming completion:
 
-```python
+```python Basic Chat Completion
 response =  client.chat.completions.create(
     messages=[
         {"role": "user", "content": "What is the capital of France?"}
     ],
     model="meta-llama/Llama-3.3-70B-Instruct"
 )
-print(response.choices[0].message.content)
+print(response.choices[0].message["content"])
 ```
 
 Streaming completion:
 
-```python
-async for chunk in client.chat.completions.create(
+```python Streaming Chat Completion
+for chunk in client.chat.completions.create(
     messages=[
         {"role": "user", "content": "Write a short poem"}
     ],
@@ -176,7 +196,7 @@ Compute token probabilities for the next token in a conversation.
   Limit response to top K most likely tokens
 </ResponseField>
 
-<ResponseField name="vocabulary" type="Optional[list[str]]">
+<ResponseField name="filter_vocabulary" type="Optional[list[str]]">
   List of tokens to compute probabilities for
 </ResponseField>
 
@@ -184,15 +204,15 @@ Compute token probabilities for the next token in a conversation.
 
 **Example:**
 
-```python
+```python Token Probabilities
 logits =  client.chat.logits(
     messages=[
         {"role": "user", "content": "The capital of France is"}
     ],
     model="meta-llama/Llama-3.3-70B-Instruct",
-    vocabulary=["Paris", "London", "Berlin"]
+    filter_vocabulary=["Paris", "London", "Berlin"]
 )
-print(logits.logits)  # {"Paris": 0.92, "London": 0.05, "Berlin": 0.03}
+print(logits.logits)  
 ```
 
 ## Response Objects

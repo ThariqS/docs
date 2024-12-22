@@ -2,14 +2,14 @@
   "$schema": "https://mintlify.com/schema.json",
   "name": "Goodfire SDK",
   "logo": {
-    "dark": "/logo/goodfire-logo.svg",
+    "dark": "/logo/goodfire-white.svg",
     "light": "/logo/goodfire-logo.svg"
   },
   "favicon": "/goodfire-mark.svg",
   "colors": {
-    "primary": "#bd4b00",
-    "light": "#ffcb80",
-    "dark": "#451e11",
+    "primary": "#ed5700",
+    "light": "#f7b100",
+    "dark": "#d62c0b",
     "anchors": {
       "from": "#0D9373",
       "to": "#07C983"

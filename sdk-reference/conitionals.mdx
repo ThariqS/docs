@@ -5,15 +5,16 @@ description: "Documentation for working with conditional feature interventions"
 
 Conditionals allow you to define dynamic feature interventions that are applied based on the activation patterns of other features during model inference. This enables creating more sophisticated steering behaviors that respond to the content being generated.
 
-Before using the Conditionals API, you'll need to find the [features](/sdk-reference/features) you want to intervene on, and a [model variant](/sdk-reference/variants):
+Before using the Conditionals API, you'll need to find the [features](/sdk-reference/features) you want to intervene on, and a [model variant](/sdk-reference/variants)
 
 ## Examples
 
 ### Basic Conditional Intervention
 
 Apply pirate-themed features only when whale-related content is detected:
-
-```python
+<CodeGroup name="Basic Conditional Intervention">
+```python Basic Conditional Intervention
+variant.reset()
 # Find relevant features
 whale_feature = client.features.search(
     "whales", model=variant, top_k=1
@@ -25,8 +26,7 @@ pirate_features = client.features.search(
 
 # Set up conditional intervention
 variant.set_when(whale_feature > 0.75, {
-    pirate_features[0]: 1.0,
-    pirate_features[1]: 0.5
+    pirate_features[0]: 0.4
 })
 
 # The model will now talk like a pirate when discussing whales
@@ -34,13 +34,24 @@ response = client.chat.completions.create(
     messages=[{"role": "user", "content": "Tell me about whales."}],
     model=variant
 )
-```
 
+print(response.choices[0].message["content"])
+```
+```output Output text
+Whales! Those majestic creatures of the sea! Did ye know that whales are actually mammals, not fish? They come in all shapes and sizes, from the tiny dwarf sperm whale to the massive blue whale, which can grow up to 100 feet long!
+
+There be different types of whales, too, like humpbacks, orcas, and belugas. Each with their own unique characteristics and behaviors. Some whales are known for their beautiful songs, while others are famous for their acrobatic tricks.
+
+Whales are social creatures, often livin' in big groups called pods. They're also super intelligent, with some species known to use tools and communicate with each other in complex ways.
+
+So hoist the colors, me hearty, and set course for learnin' more about these amazin' sea dwellers! What would ye like to know about whales? Their habitats? Their diets? Or maybe their conservation status? Let me know, and I'll do me best to tell ye more!
+```
+</CodeGroup>
 ### Aborting Generation
 
 Stop generation if certain content is detected:
-
-```python
+<CodeGroup name="Abort example">
+```python Abort example
 # Abort if whale features are too strong
 variant.abort_when(whale_feature > 0.75)
 
@@ -52,24 +63,38 @@ try:
 except goodfire.exceptions.InferenceAbortedException:
     print("Generation aborted due to whale content")
 ```
-
+```output Abort output
+Generation aborted due to whale content
+```
+</CodeGroup>
 ### Auto-Generated Conditionals
 
 Use natural language to automatically generate conditional statements:
 
-```python
-# Generate conditional based on description
-conditional = goodfire.conditional.AutoConditional(
-    "parrots",
+```python Auto-Generated Conditionals example
+#create a variant
+variant = goodfire.Variant("meta-llama/Llama-3.3-70B-Instruct")
+# Generate conditional based on description - this will create conditions for both whales and penguins being present
+conditional= goodfire.conditional.AutoConditional(
+    "when the model talks about whales and penguins",
     client=client,
-    model="meta-llama/Llama-3-70B-Instruct",
-    num_features_to_use=5
+    model=variant
+)
+# Get pirate  feature
+pirate_feature = client.features.search(
+    "talk like a pirate", model=variant, top_k=1
+)
+# Make the model talk like a pirate when it talks about both whales and penguins
+variant.set_when(conditional, {
+    pirate_feature[0]: 0.9
+})
+
+response = client.chat.completions.create(
+    messages=[{"role": "user", "content": "Tell me about whales and penguins!"}],
+    model=variant
 )
 
-# Apply feature edits when condition is met
-variant.set_when(conditional, {
-    feature: 0.5
-})
+print(response.choices[0].message["content"])
 ```
 
 ## Creating Conditionals
@@ -138,8 +163,7 @@ Apply feature interventions when a condition is met.
 ```python
 # Set pirate features when whale features are detected
 variant.set_when(whale_feature > 0.75, {
-    pirate_features[0]: 1.0,
-    pirate_features[1]: 0.5
+    pirate_features[0]: 0.5
 })
 ```
 
@@ -167,8 +191,7 @@ try:
         model=variant
     )
 except goodfire.exceptions.InferenceAbortedException:
-    # Handle abort case
-    pass
+    print("Generation aborted due to whale content")
 ```
 
 ### handle_when()
@@ -220,10 +243,6 @@ The AutoConditional utility helps automatically generate conditional statements 
   Model to use for generating conditions
 </ResponseField>
 
-<ResponseField name="num_features_to_use" type="int" required>
-  Number of features to include in condition
-</ResponseField>
-
 **Returns:**
 
 <ResponseField name="conditional" type="ConditionalGroup">
@@ -233,15 +252,19 @@ The AutoConditional utility helps automatically generate conditional statements 
 **Example:**
 
 ```python
-conditional = goodfire.conditional.AutoConditional(
-    "parrots",
+# Generate conditional based on description - this will create conditions for both whales and penguins being present
+conditional= goodfire.conditional.AutoConditional(
+    "when the model talks about whales and penguins",
     client=client,
-    model="meta-llama/Llama-3-70B-Instruct",
-    num_features_to_use=5
+    model=variant
 )
-
+# Get pirate  feature
+pirate_feature = client.features.search(
+    "talk like a pirate", model=variant, top_k=1
+)
+# Make the model talk like a pirate when it talks about both whales and penguins
 variant.set_when(conditional, {
-    feature: 0.5
+    pirate_feature[0]: 0.9
 })
 ```
 

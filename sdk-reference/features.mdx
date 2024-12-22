@@ -13,7 +13,8 @@ variant = Variant("meta-llama/Llama-3.3-70B-Instruct")
 
 You can then access features through the client's features interface. For example, to search for features:
 
-```python
+<CodeGroup name="Searching for features">
+```python Search for features
 # Search for features related to a concept
 features = client.features.search(
     "angry",
@@ -24,14 +25,25 @@ features = client.features.search(
 # Print the found features
 print(features)
 ```
+```output Features
+FeatureGroup([
+   0: "Descriptions of anger, indignation, and frustration",
+   1: "Negative emotional states, particularly anger and frustration",
+   2: "Angry declarations that something is a scam or worthless",
+   3: "Explicit references to anger and angry emotions",
+   4: "Words that build tension or express defiance in confrontational dialogue"
+])
+```
+</CodeGroup>
 
 Or inspect feature activations in text:
-
-```python
+<CodeGroup name="Inspecting feature activations">
+```python Inspect feature activations
 # Analyze how features activate in text
 inspector = client.features.inspect(
     [
-        {"role": "user", "content": "Hello world"}
+        {"role": "user", "content": "What do you think about pirates and whales"},
+        {"role": "assistant", "content": "I think pirates are cool and whales are cool"}
     ],
     model=variant
 )
@@ -40,6 +52,14 @@ inspector = client.features.inspect(
 for activation in inspector.top(k=5):
     print(f"{activation.feature.label}: {activation.activation}")
 ```
+```output Features activated in text
+Text describing experimental or hypothetical configurations and setups: 7
+The assistant should engage with pirate-themed content or roleplay as a pirate: 7
+The assistant deflects personal preference questions by explaining its AI nature then providing objective information: 7
+Detailed personification and attribute description in formal writing: 7
+Offensive or inappropriate content that should be filtered: 6
+```
+</CodeGroup>
 
 The Features API provides methods for working with interpretable features of language models. Features represent learned patterns in model behavior that can be analyzed and modified.
 
@@ -67,7 +87,8 @@ Get the nearest neighbors of a feature or group of features.
 
 **Example:**
 
-```python
+<CodeGroup name="Getting neighbors of a feature">
+```python Getting neighbors of a feature
 # Get neighbors of a feature
 neighbors =  client.features.neighbors(
     feature,
@@ -79,7 +100,7 @@ neighbors =  client.features.neighbors(
 for neighbor in neighbors:
     print(neighbor.label)
 ```
-
+</CodeGroup>
 ### search()
 
 Search for features based on semantic similarity to a query string.
@@ -102,11 +123,11 @@ Search for features based on semantic similarity to a query string.
 
 **Example:**
 
-```python
+```python Search features
 # Search for features related to writing style
 features = client.features.search(
     "formal writing style",
-    model="meta-llama/Llama-3.1-8B-Instruct",
+    model="meta-llama/Llama-3.3-70B-Instruct",
     top_k=10
 )
 
@@ -144,12 +165,14 @@ Analyzes how features are activated across the input messages.
 
 **Example:**
 
-```python
-# Analyze feature activations in text
-inspector =  client.features.inspect(
-    messages=[{"role": "user", "content": "Hello world"}],
-    model="meta-llama/Llama-3.3-70B-Instruct",
-    aggregate_by="frequency"
+```python Inspect feature activations
+# Analyze how features activate in text
+inspector = client.features.inspect(
+    [
+        {"role": "user", "content": "What do you think about pirates and whales"},
+        {"role": "assistant", "content": "I think pirates are cool and whales are cool"}
+    ],
+    model=variant
 )
 
 # Get top activated features
@@ -186,7 +209,7 @@ Identify features that differentiate between two conversation datasets.
 
 **Example:**
 
-```python
+```python Get constrast features
 # Compare formal vs informal conversations
 dataset_1 = [[
     {"role": "user", "content": "Hi how are you?"},
@@ -231,10 +254,10 @@ Rerank a set of features based on a query.
 
 **Example:**
 
-```python
+```python Rerank
 # Rerank features based on relevance to "writing style"
 reranked = client.features.rerank(
-    features=feature_group,
+    features=formal_features,
     query="writing style",
     model="meta-llama/Llama-3.3-70B-Instruct",
     top_k=10
@@ -263,7 +286,7 @@ Retrieves feature activation values for each token in the input messages.
 
 **Example:**
 
-```python
+```python Get activation matrix
 # Get activation matrix for a conversation
 matrix =  client.features.activations(
     messages=[{"role": "user", "content": "Hello world"}],
@@ -377,6 +400,7 @@ Represents the activation of a feature.
 </ParamField>
 </Expandable>
 
+
 ### ContextInspector
 
 Analyzes feature activations in text.
@@ -384,19 +408,12 @@ Analyzes feature activations in text.
 <Expandable title="Properties">
 <ParamField body="Methods">
   - `top(k)`: Get top activated features
-  - `matrix(return_lookup)`: Get the full activation matrix
 </ParamField>
 
 <ParamField body="Example">
 ```python
 # Get top 5 activated features
 top_features = inspector.top(k=5)
-
-# Get activation matrix and feature lookup
-
-matrix, feature_lookup = inspector.matrix(return_lookup=True)
-
 ```
 </ParamField>
 </Expandable>
-```

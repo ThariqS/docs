@@ -1,16 +1,17 @@
 ---
-title: "AutoSteer"
+title: "Auto Steer"
 ---
 
-AutoSteering allows you to automatically generate feature interventions based on natural language descriptions of desired behaviors. This provides an easy way to steer model outputs without manually selecting features.
+Auto Steering allows you to automatically generate feature interventions based on natural language descriptions of desired behaviors. This provides an easy way to steer model outputs without manually selecting features.
 
 ## Basic Usage
 
-The simplest way to use AutoSteer is with the `AutoEdit` method:
+The simplest way to use Auto Steering is with the `AutoSteer` method:
 
-```python
+<CodeGroup name="Basic Usage">
+```python Code
 # Create automatic feature edits for desired behavior
-edits = client.features.AutoEdit(
+edits = client.features.AutoSteer(
     specification="be funny",  # Natural language description
     model=variant,  # Model variant to use
 )
@@ -23,11 +24,15 @@ response = client.chat.completions.create(
     messages=[{"role": "user", "content": "Tell me a story"}],
     model=variant
 )
+print(response.choices[0].message["content"])
 ```
-
+```output Output
+Once upon a time, there was an egg that didn't crack under pressure. It was an egg-cellent joke teller, and it always cracked people up! But one day, it decided to leave the egg carton and go on an egg-venture. It rolled away from the farm and into a field of corn. There, it met a chicken who was an egg-ceptional listener. The chicken and the egg became fast friends and started an egg-static band. They were egg-straordinary musicians, and people flocked to see them! In the end, the egg finally found its place – it was an egg-istential crisis averted! Hope that cracked you up!
+```
+</CodeGroup>
 ## How It Works
 
-Under the hood, AutoSteer:
+Under the hood, Auto Steer:
 
 1. Generates contrastive examples of content with and without the desired behavior
 2. Identifies the most relevant features that distinguish the behavior
@@ -36,25 +41,13 @@ Under the hood, AutoSteer:
 
 ## Advanced Usage
 
-### Customizing Number of Features
-
-You can control how many features are used in the generated edits:
-
-```python
-edits = client.features.AutoEdit(
-    specification="be concise",
-    model=variant,
-    num_features_to_use=4  # Use fewer features for more focused steering
-)
-```
-
 ### Combining with Manual Edits
 
-AutoSteer edits can be combined with manual feature interventions:
+Auto Steer edits can be combined with manual feature interventions:
 
 ```python
 # Generate automatic edits
-auto_edits = client.features.AutoEdit(
+auto_edits = client.features.AutoSteer(
     specification="be professional",
     model=variant
 )
@@ -68,11 +61,11 @@ variant.set({
 
 ### Using with Conditionals
 
-AutoSteer can be used within conditional statements:
+Auto Steer can be used within conditional statements:
 
 ```python
 # Generate edits for desired behavior
-funny_edits = client.features.AutoEdit(
+funny_edits = client.features.AutoSteer(
     specification="be funny",
     model=variant
 )
@@ -85,13 +78,13 @@ variant.set_when(context_feature > 0.5, funny_edits)
 
 - Use clear, specific behavior descriptions
 - Test generated edits to ensure desired results
-- Consider combining multiple AutoSteer edits for complex behaviors
+- Consider combining multiple Auto Steer edits for complex behaviors
 - Adjust number of features based on steering precision needed
 - Use with conditionals for context-aware behavior
 
 ## API Reference
 
-### AutoEdit
+### AutoSteer
 
 Generate automatic feature edits based on natural language description.
 
@@ -105,10 +98,6 @@ Generate automatic feature edits based on natural language description.
   Model or variant to use for generating edits
 </ResponseField>
 
-<ResponseField name="num_features_to_use" type="int" default="8">
-  Number of features to include in edits
-</ResponseField>
-
 **Returns:**
 
 <ResponseField name="edits" type="dict[Feature, float]">
@@ -117,10 +106,9 @@ Generate automatic feature edits based on natural language description.
 
 **Example:**
 
-```python
-edits = client.features.AutoEdit(
+```python Auto Steer
+edits = client.features.AutoSteer(
     specification="be more creative",
-    model=variant,
-    num_features_to_use=6
+    model=variant
 )
 ```
