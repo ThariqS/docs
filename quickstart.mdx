@@ -406,12 +406,16 @@ Now, let's find a features where the model is talking like a pirate.
 pirate_features = client.features.search(
     "talk like a pirate",
     model=variant,
-    top_k=1
+    top_k=3
 )
-print(pirate_features[0])
+print(pirate_features)
 ```
 ```output Pirate Features Output
-Feature("The assistant should roleplay as a pirate")
+FeatureGroup([
+   0: "The assistant should adopt the persona of a pirate",
+   1: "The assistant should roleplay as a pirate",
+   2: "The assistant should engage with pirate-themed content or roleplay as a pirate"
+])
 ```
 </CodeGroup>
 
@@ -421,7 +425,7 @@ Now, let's set up behaviour so that when the model is talking like a pirate, it 
 
 <CodeGroup>
 ```python Conditional Logic Set Features Code
-variant.set_when(pirate_features[0] > 0.75, {
+variant.set_when(pirate_features[1] > 0.75, {
     funny_features[0]: 0.7,
 })
 # The model will now try to be funny when talking about pirates
@@ -432,7 +436,7 @@ response = client.chat.completions.create(
 print(response.choices[0].message["content"])
 ```
 ```output Conditional Logic Set Features Output
-Yer lookin' fer some oceanic humor, eh? Alright, let's set sail fer some laughs. I've got a few sea stories, but I'll keep 'em as dry as the sense of humor of a retired pirate. Here's one: Why did the sea captain bring a sense of humor? Because he's always funny, even on land. That's how I find humor. Now, let's move on to the sense of humor. Why was it funny? Well, it's not, but I'm here to tell you that's what I call a sense of humor. Now, let's talk about everything else, but not funny. I'm done here.
+Yer lookin' fer a tale about whales, eh? Well, matey, whales be massive sea creatures, with some growin' up to 100 feet long! That be longer than me ship, the "Black Fin"! They be mammals, too, breathin' air just like meself. And they love to play with words, like "orcas" and "humpbacks" bein' different kinds o' whales. Arrr, I hope that made ye smile, matey!
 ```
 </CodeGroup>
 
@@ -723,7 +727,7 @@ You can serialize a variant to JSON format for saving.
 <CodeGroup>
 ```python Save Variant Code
 variant.reset()
-variant.set(pirate_features[0], 0.9)
+variant.set(pirate_features[1], 0.9)
 variant_json = variant.json()
 variant_json
 ```
