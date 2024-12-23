@@ -9,7 +9,7 @@ description: "Get started with the Goodfire Ember SDK"
   [support](mailto:contact@goodfire.ai).
 </Info>
 
-<a href="https://colab.research.google.com/drive/1KsU3wMmNfsjkU-6xWTRr7_784sBE1tm3?usp=sharing" target="_blank">
+<a href="https://colab.research.google.com/drive/1safd2ggbGOfRuBUKBYr3-BveMAMVtDEz?usp=sharing" target="_blank">
   <img
     src="https://colab.research.google.com/assets/colab-badge.svg"
     alt="Open in Colab"
@@ -34,7 +34,7 @@ In this quickstart, you'll learn how to:
 
 
 ```python Code
-!pip install goodfire
+pip install goodfire
 ```
 
 
@@ -89,8 +89,8 @@ There are three ways to find features you may want to modify:
 Let's explore each method in detail.
 
 
-<AccordionGroup>
-<Accordion title="Auto Steer">
+### Auto Steer
+
 
 Auto steering automatically finds and adjusts feature weights to achieve your desired behavior. Simply provide a short prompt describing what you want, and autosteering will:
 
@@ -138,15 +138,13 @@ Pirate
 ```
 </CodeGroup>
 
-
 The model automatically added puns/jokes, even though we didn't specify anything about comedy in our prompt.
-</Accordion>
 
 
-<Accordion title="Feature search">
+### Feature search
 
 
-First, let's reset the model to its default state (without any feature edits)
+Let's reset the model to its default state (without any feature edits)
 
 
 ```python Code
@@ -212,13 +210,12 @@ Foxes! They're quite the charmers. Here are some key facts:
 Feel free to play around with the weights and features to see how the model responds.
 
 
-
 #### (Advanced) Look at a feature's nearest neighbors
 
 
-Get neighboring features by comparing them to either individual features or groups of features. When comparing to individual features, neighbors() looks at similarity in the embedding space. When comparing to groups, neighbors() finds features closest to the group's centroid.
+Get neighboring features by comparing them to either individual features or groups of features. When comparing to individual features, `neighbors()` looks at similarity in the embedding space. When comparing to groups, `neighbors()` finds features closest to the group's centroid.
 
-neighbors() helps you understand feature relationships beyond just their labels. It can reveal which features might work best for your intended model adjustments.
+`neighbors()` helps you understand feature relationships beyond just their labels. It can reveal which features might work best for your intended model adjustments.
 
 
 <CodeGroup>
@@ -264,10 +261,7 @@ FeatureGroup([
 </CodeGroup>
 
 
-</Accordion>
-
-
-<Accordion title="Contrastive Search">
+### Contrastive Search
 
 
 Contrastive search lets you discover relevant features in a data-driven way.
@@ -371,9 +365,6 @@ You call a group of whales? A pod? Because you have a whale of a time when you'r
 </CodeGroup>
 
 
-</Accordion>
-</AccordionGroup>
-
 
 ## (Advanced) Conditional logic for feature edits
 
@@ -381,7 +372,7 @@ You call a group of whales? A pod? Because you have a whale of a time when you'r
 You can establish relationships between different features (or feature groups) using conditional interventions.
 
 
-First, let's reset the variant and pick out the funny feature
+First, let's reset the variant and pick out the funny features.
 
 
 <CodeGroup>
@@ -407,7 +398,7 @@ FeatureGroup([
 </CodeGroup>
 
 
-Now, let's find a features where the model is talking like a pirate
+Now, let's find a features where the model is talking like a pirate.
 
 
 <CodeGroup>
@@ -446,7 +437,7 @@ Yer lookin' fer some oceanic humor, eh? Alright, let's set sail fer some laughs.
 </CodeGroup>
 
 
-Well I don't know if I laughed at that, and maybe the model isn't very good at pirate jokes, so let's set up behaviour to stop generating if the pirate features are too strong.
+Say we decide the model isn't very good at pirate jokes. Let's set up behavior to stop generation altogether if the pirate features are too strong.
 
 
 ```python Abort when Pirate Features are too strong
@@ -468,11 +459,9 @@ If you aren't sure of the features you want to condition on, use AutoConditional
 ```python Auto Conditional Code
 # Generate auto conditional based on a description. This will automatically
 # choose the relevant features and conditional weight
-conditional = goodfire.conditional.AutoConditional(
+conditional = client.features.AutoConditional(
     "pirates",
-    client=client,
     model="meta-llama/Llama-3.3-70B-Instruct",
-    num_features_to_use=5
 )
 
 # Apply feature edits when condition is met
@@ -614,7 +603,7 @@ logits.logits
 ### Get feature activation vectors for machine learning tasks
 
 
-To run a machine learning pipeline at the feature level (for instance, for humor detection) you can directly export features using `client.features.activations` to get a matrix or retrieve a sparse vector for a specific FeatureGroup.
+To run a machine learning pipeline at the feature level (for instance, for humor detection) you can directly export features using `client.features.activations` to get a matrix or retrieve a sparse vector for a specific `FeatureGroup`.
 
 
 <CodeGroup>

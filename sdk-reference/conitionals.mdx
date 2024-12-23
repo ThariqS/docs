@@ -75,9 +75,8 @@ Use natural language to automatically generate conditional statements:
 #create a variant
 variant = goodfire.Variant("meta-llama/Llama-3.3-70B-Instruct")
 # Generate conditional based on description - this will create conditions for both whales and penguins being present
-conditional= goodfire.conditional.AutoConditional(
+conditional= client.features.AutoConditional(
     "when the model talks about whales and penguins",
-    client=client,
     model=variant
 )
 # Get pirate  feature
@@ -235,10 +234,6 @@ The AutoConditional utility helps automatically generate conditional statements 
   Natural language description of the desired condition
 </ResponseField>
 
-<ResponseField name="client" type="Client" required>
-  Goodfire client instance
-</ResponseField>
-
 <ResponseField name="model" type="Union[str, Variant]" required>
   Model to use for generating conditions
 </ResponseField>
@@ -253,9 +248,8 @@ The AutoConditional utility helps automatically generate conditional statements 
 
 ```python
 # Generate conditional based on description - this will create conditions for both whales and penguins being present
-conditional= goodfire.conditional.AutoConditional(
+conditional= client.features.AutoConditional(
     "when the model talks about whales and penguins",
-    client=client,
     model=variant
 )
 # Get pirate  feature
