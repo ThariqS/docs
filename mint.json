@@ -43,7 +43,7 @@
         "sdk-reference/chat",
         "sdk-reference/variants",
         "sdk-reference/features",
-        "sdk-reference/conitionals",
+        "sdk-reference/conditionals",
         "sdk-reference/autosteer"
       ]
     },
