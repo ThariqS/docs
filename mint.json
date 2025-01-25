@@ -18,7 +18,7 @@
   "topbarLinks": [
     {
       "name": "Support",
-      "url": "mailto:support@goodfire.ai"
+      "url": "mailto:contact@goodfire.ai"
     }
   ],
   "topbarCtaButton": {
@@ -40,6 +40,7 @@
       "group": "Classes",
       "pages": [
         "sdk-reference/example",
+        "sdk-reference/async",
         "sdk-reference/chat",
         "sdk-reference/variants",
         "sdk-reference/features",

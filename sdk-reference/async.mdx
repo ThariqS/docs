@@ -1,0 +1,120 @@
+---
+title: "Async Client"
+description: "Documentation for using Goodfire's Async Client API"
+---
+
+The Async Client provides asynchronous methods for interacting with Goodfire's API, allowing for non-blocking operations in asyncio applications.
+
+## Using the AsyncClient vs Client
+
+The AsyncClient provides the same functionality as the regular Client but is designed for use in asynchronous applications. Here are the key differences:
+
+1. All methods return coroutines that must be awaited
+2. Streaming responses use `async for` instead of regular `for` loops
+3. The client must be used within an async context
+
+### When to Use AsyncClient
+
+Use AsyncClient when:
+
+- Your application uses asyncio
+- You need to make concurrent API calls
+- You're building an async web application (e.g., with FastAPI or aiohttp)
+- You want to perform other operations while waiting for API responses
+
+## Methods
+
+The AsyncClient provides async versions of all the methods available in the regular Client. The parameters and return types are the same, but the methods must be awaited.
+
+### Initialization
+
+```python
+client = goodfire.AsyncClient(
+    api_key="your-api-key",
+)
+```
+
+## Example
+
+### Basic Async Chat Completion
+
+<CodeGroup name="Basic Async Chat">
+```python Code
+import asyncio
+import goodfire
+
+# Initialize the async client
+client = goodfire.AsyncClient('{YOUR_API_KEY}')
+
+# Create a non-streaming completion
+async def main():
+    response = await client.chat.completions.create(
+        messages=[
+            {"role": "user", "content": "What is the capital of France?"}
+        ],
+        model="meta-llama/Llama-3.3-70B-Instruct"
+    )
+    print(response.choices[0].message["content"])
+
+
+# Run the async function
+await main()
+
+````
+```output Output
+The capital of France is Paris.
+````
+
+</CodeGroup>
+
+### Concurrent Requests Example
+
+```python Code
+import goodfire
+import asyncio
+
+variant = goodfire.Variant("meta-llama/Meta-Llama-3.1-8B-Instruct")
+client = goodfire.AsyncClient(api_key=GOODFIRE_API_KEY)
+
+async def chat_completion(message: str, index: int) -> str:
+    response = await client.chat.completions.create(
+        messages=[
+            {"role": "user", "content": message},
+        ],
+        model=variant,
+    )
+    print(f"Response {index}: {response.choices[0].message['content']}")
+    return response
+
+async def main():
+    # Create multiple tasks to run concurrently
+    messages = [
+        "Who is this?",
+        "What is your favorite color?",
+        "Tell me a joke",
+        "Write a haiku about programming",
+        "What's the capital of France?",
+        "Explain quantum computing in one sentence",
+        "Give me a random fact about elephants",
+        "Write a short limerick",
+        "What's the meaning of life?",
+        "Tell me about the Renaissance period",
+        "Give me a cooking tip",
+        "What's your favorite book?",
+        "Explain photosynthesis simply",
+        "Tell me an interesting space fact",
+        "Give me a riddle"
+    ]
+
+    tasks = [chat_completion(msg, i) for i, msg in enumerate(messages)]
+    results = await asyncio.gather(*tasks)
+
+    # # Print results
+    # for msg, response in zip(messages, results):
+    #     print(f"Question: {msg}")
+    #     print(f"Answer: {response}\n")
+
+ asyncio.run(main())
+```
+
+Remember to always run your async code within an async context using `asyncio.run()` or within an existing async application framework.
